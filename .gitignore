@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.dev.vars*
+.wrangler/
+coverage/
+test-results/
+playwright-report/
+artifacts/
+*.log
+.DS_Store
+output/
+**/*.local.jsonc

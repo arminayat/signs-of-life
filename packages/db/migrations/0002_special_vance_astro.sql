@@ -1,0 +1,1 @@
+ALTER TABLE "pm"."events" ADD COLUMN "anonymous" boolean DEFAULT false NOT NULL;

@@ -1,0 +1,37 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "product-monitor-jobs",
+  "main": "src/cloudflare.ts",
+  "compatibility_date": "2026-09-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "vars": {
+    "PUBLIC_URL": "https://product-monitor.example.com",
+    "AUTH_PROVIDER": "better-auth",
+    "EMAIL_PROVIDER": "disabled",
+    "ENCRYPTION_KEY_VERSION": "v1",
+    "BUILD_REVISION": "development",
+    "SOURCE_URL": "https://github.com/arminayat/product-monitor",
+  },
+  "hyperdrive": [
+    {
+      "binding": "DATABASE",
+      "id": "00000000000000000000000000000000",
+      "localConnectionString": "postgres://monitor:monitor@127.0.0.1:5432/monitor",
+    },
+  ],
+  "triggers": { "crons": ["* * * * *"] },
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "product-monitor-jobs" }],
+    "consumers": [
+      {
+        "queue": "product-monitor-jobs",
+        "max_batch_size": 3,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "product-monitor-dead-letter",
+      },
+    ],
+  },
+}

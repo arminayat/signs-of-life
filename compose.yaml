@@ -1,0 +1,70 @@
+name: product-monitor
+x-server: &server
+  build:
+    context: .
+    target: runtime
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://monitor:${POSTGRES_PASSWORD:-monitor}@db:5432/monitor
+    PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+    HOST: 0.0.0.0
+  restart: unless-stopped
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: monitor
+      POSTGRES_USER: monitor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monitor}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U monitor]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  migrate:
+    <<: *server
+    restart: "no"
+    command: [pnpm, exec, tsx, scripts/migrate.ts]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    <<: *server
+    command: [pnpm, exec, tsx, apps/api/src/node.ts]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  jobs:
+    <<: *server
+    command: [pnpm, exec, tsx, apps/jobs/src/node.ts]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    build:
+      context: .
+      target: web
+    ports: ["${WEB_PORT:-8080}:80"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:v1.29
+    profiles: [mail]
+    ports: ["127.0.0.1:8025:8025"]
+    restart: unless-stopped
+volumes:
+  postgres-data:

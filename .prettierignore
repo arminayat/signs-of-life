@@ -1,0 +1,13 @@
+node_modules
+artifacts
+output
+coverage
+test-results
+playwright-report
+**/dist
+**/worker-configuration.d.ts
+packages/db/migrations
+pnpm-lock.yaml
+.env*
+.dev.vars*
+LICENSE
