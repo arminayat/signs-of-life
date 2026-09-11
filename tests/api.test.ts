@@ -22,6 +22,26 @@ function write(path: string, body: unknown, method = "POST") {
   });
 }
 describe("API tenant and lifecycle contracts", () => {
+  it("binds Supabase OAuth state to its workspace and rejects callback replay", async () => {
+    const a = await setup(),
+      b = await setup();
+    a.services.config.SUPABASE_OAUTH_CLIENT_ID = "test-client";
+    a.services.config.SUPABASE_OAUTH_CLIENT_SECRET = "test-secret";
+    const start = await a.app.fetch(write("/connections/supabase/start", {}));
+    expect(start.status).toBe(200);
+    const url = new URL(((await start.json()) as { url: string }).url);
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    const callback = `/api/connections/supabase/callback?state=${url.searchParams.get("state")}&code=fixture-code`;
+    expect((await b.app.request(callback)).status).toBe(400);
+    expect((await a.app.request(callback)).status).toBe(303);
+    expect((await a.app.request(callback)).status).toBe(400);
+    expect(
+      (await a.store.snapshot(a.member!.workspaceId)).connections,
+    ).toHaveLength(1);
+    expect(
+      (await b.store.snapshot(b.member!.workspaceId)).connections,
+    ).toHaveLength(0);
+  });
   it("rejects unauthenticated access and cross-origin writes", async () => {
     const f = await fixture(null);
     cleanups.push(f.close);

@@ -77,8 +77,11 @@ async function deliver(
     return;
   }
   if (
-    delivery.status === "sending" &&
-    Date.now() - delivery.createdAt.getTime() > 23 * 3600_000
+    destination.kind === "email" &&
+    services.config.EMAIL_PROVIDER === "resend" &&
+    delivery.attempts > 0 &&
+    Date.now() - (delivery.startedAt ?? delivery.createdAt).getTime() >
+      23 * 3600_000
   ) {
     await store.updateDelivery(delivery.id, {
       status: "uncertain",
@@ -88,7 +91,7 @@ async function deliver(
   }
   await store.updateDelivery(delivery.id, {
     status: "sending",
-    startedAt: new Date(),
+    startedAt: delivery.startedAt ?? new Date(),
     attempts: delivery.attempts + 1,
   });
   // The opaque unsubscribe capability is derived from an operator secret, never the email.
@@ -103,15 +106,23 @@ async function deliver(
       ? undefined
       : `${services.config.PUBLIC_URL}/api/unsubscribe/${unsubscribeToken}`,
   );
-  if (result.status === "retry" && job.attempts < 8) {
+  if (result.status === "retry" && delivery.attempts + 1 < 8) {
     await store.updateDelivery(delivery.id, {
-      status: "pending",
+      status:
+        result.mayHaveDelivered || delivery.status === "sending"
+          ? "sending"
+          : "pending",
       lastError: result.code,
     });
     return new Date(Date.now() + result.afterSeconds * 1000);
   }
   await store.updateDelivery(delivery.id, {
-    status: result.status === "retry" ? "failed" : result.status,
+    status:
+      result.status === "retry"
+        ? result.mayHaveDelivered || delivery.status === "sending"
+          ? "uncertain"
+          : "failed"
+        : result.status,
     lastError: result.status === "accepted" ? null : result.code,
     providerId:
       result.status === "accepted" ? (result.providerId ?? null) : null,

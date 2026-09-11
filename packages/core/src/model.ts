@@ -27,7 +27,12 @@ export type JobPayload =
   | { kind: "deliver"; deliveryId: string };
 export type DeliveryOutcome =
   | { status: "accepted"; providerId?: string }
-  | { status: "retry"; afterSeconds: number; code: string }
+  | {
+      status: "retry";
+      afterSeconds: number;
+      code: string;
+      mayHaveDelivered?: boolean;
+    }
   | { status: "failed" | "uncertain"; code: string };
 export interface SecretBox {
   seal(value: unknown, context: string): Promise<string>;

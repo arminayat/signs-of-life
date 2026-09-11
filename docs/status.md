@@ -15,9 +15,11 @@ This document distinguishes implemented behavior, automated verification and liv
 ## Verified during implementation
 
 - Drizzle migrations apply to isolated local PostgreSQL 18.
-- 30 backend tests pass using real PostgreSQL and fake external providers, including both authentication adapters and a local SMTP protocol exchange.
+- 34 backend tests pass using real PostgreSQL and fake external providers, including both authentication adapters, OAuth callback replay, retry limits and a local SMTP protocol exchange.
 - Six desktop/mobile browser tests pass using an isolated fixture host and actual API/database operations.
 - All three Cloudflare bundles build in Wrangler deployment dry runs. The local Cloudflare runtime also passes readiness, signed Better Auth session, project creation/readback and workspace deletion checks.
+- GitHub Actions passes the full checks and builds/starts the complete Docker stack with PostgreSQL 17, migration, API, jobs and frontend. Container readiness and SPA routing pass.
+- The AGPL repository is public at https://github.com/arminayat/product-monitor. A staged-source secret scan passed before publication.
 
 ## External acceptance still required
 

@@ -12,6 +12,7 @@ function retry(response: Response): DeliveryOutcome {
       Math.min(3600, Number(response.headers.get("retry-after")) || 60),
     ),
     code: `provider_http_${response.status}`,
+    mayHaveDelivered: response.status >= 500,
   };
 }
 export function telegramChannel(token: string, http: Http = fetch): Channel {
@@ -115,6 +116,7 @@ export function resendTransport(
           status: "retry",
           afterSeconds: 60,
           code: "resend_retry_idempotent",
+          mayHaveDelivered: true,
         };
       }
     },

@@ -20,6 +20,8 @@ Account events, cursor progress and delivery jobs are written in one transaction
 
 External sends cannot be made atomic with PostgreSQL. Telegram and SMTP timeouts, or interrupted sends, become `uncertain`. Resend uses its idempotency key for retries within its provider window. `accepted` means provider acceptance, not confirmed receipt by the person. Each channel has its own delivery record.
 
+Notification retries stop after eight provider attempts. The first send time bounds Resend retries to 23 hours, including retries pending after an outage. Any earlier ambiguous result remains uncertain if later attempts fail to resolve it.
+
 ## Collection semantics
 
 Supabase polls `auth.users` through the read-only Management API. It reads ID, creation time, provider and anonymous status. New unconfirmed accounts count; login events, updates and conversions of existing anonymous accounts do not. A five-minute overlap catches late transactions; very late commits or accounts deleted between polls can be missed. Monitoring starts at source connection time, without historical alerts.
