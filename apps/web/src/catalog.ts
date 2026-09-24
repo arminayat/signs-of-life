@@ -14,9 +14,3 @@ export function catalogQuery(connectionId: string) {
     staleTime: 60_000,
   };
 }
-
-export function catalogLabel(item: CatalogItem) {
-  return item.organizationName
-    ? `${item.organizationName} / ${item.name}`
-    : item.name;
-}

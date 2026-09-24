@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@heroui/react";
 import { useAction, type Dashboard } from "./data";
 import { Dialog, ErrorNotice, Field, Notice, SelectField } from "./ui";
-import { catalogLabel, catalogQuery } from "./catalog";
+import { catalogQuery } from "./catalog";
 export function SourceDialog({
   projectId,
   data,
@@ -97,7 +97,7 @@ export function SourceDialog({
               <option value="">Choose a source</option>
               {catalog.data.items.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {catalogLabel(item)}
+                  {item.name}
                 </option>
               ))}
             </SelectField>
@@ -163,11 +163,13 @@ function ConnectionOption({
   });
   const label =
     connection.kind === "supabase"
-      ? catalog.data?.items.map(catalogLabel).join(", ")
+      ? [
+          ...new Set(
+            catalog.data?.items
+              .map((item) => item.organizationName)
+              .filter(Boolean),
+          ),
+        ].join(", ")
       : undefined;
-  return (
-    <option value={connection.id}>
-      {label || connection.name} · {connection.kind}
-    </option>
-  );
+  return <option value={connection.id}>{label || connection.name}</option>;
 }
