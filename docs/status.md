@@ -59,3 +59,12 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 - No database migration, environment variable or provider-permission change is required. API and web were deployed together from `4363bdd55632862855e1c58596d7becaa389aab9`; the jobs Worker is unchanged.
 - Live API version `a8e06a11-01ad-4e1f-b2c4-3516933b3e5a` and web version `1c15c1e3-6ce5-4843-8d64-1945ba962843` serve `https://sol.arminayat.dev`. Health and database readiness return HTTP 200 with the release revision; live HTML, JavaScript and CSS match the release build. Overview, Sources and Notifications deep links return the SPA, and both new API endpoints reject unauthenticated requests with HTTP 401.
 - GitHub Actions [run 36008359310](https://github.com/arminayat/signs-of-life/actions/runs/36008359310) passes application checks and container readiness/routing. A bounded API error tail observed no failed invocations. Production authenticated project data and real provider collection/delivery remain separate acceptance checks.
+
+## Project-owned connections deployment — 2026-09-24
+
+- Workspace Connections navigation is removed. Creating a project opens Sources, where Supabase and App Store Connect onboarding creates a project-owned connection and continues to source selection.
+- Migration 0004 was applied to production after a private PostgreSQL backup. The existing connection is project-owned, its credential is retained, and no source has a mismatched project. The migration ledger now contains five entries.
+- API version `1ad4b89b-a985-4519-9be9-b28db036dc2b` and web version `083803ed-606c-4317-be0d-2126054490c0` deploy revision `8ca21d1` at `https://sol.arminayat.dev`. Jobs retain their previous deployment.
+- Health, database readiness and configuration return HTTP 200 with revision `8ca21d1`. Served HTML, JavaScript and CSS match the isolated release build byte-for-byte. Supabase monitoring remains enabled.
+- Type checking, 42 backend/database tests and the production build pass. The initial CI run caught a missing GitHub icon export from overlapping local edits; the isolated release includes its required component. No local browser checks or live provider authorization were performed for this deployment.
+- GitHub Actions [run 36038109807](https://github.com/arminayat/signs-of-life/actions/runs/36038109807) passes application checks, the repository's automated browser suite, all three Worker bundle checks, and Docker readiness/routing. A bounded 25-second API error tail observed no error events.
