@@ -59,10 +59,43 @@ export async function listSupabaseProjects(token: string, http: Http = fetch) {
         id: z.string(),
         name: z.string(),
         region: z.string().optional(),
+        organization_id: z.string().optional(),
+        organization_slug: z.string().optional(),
       }),
     )
     .parse(data);
 }
+export async function listSupabaseCatalog(token: string, http: Http = fetch) {
+  const projects = await listSupabaseProjects(token, http);
+  // Organization metadata must not prevent selecting an accessible project.
+  const organizations = await (async () => {
+    const response = await http(`${api}/organizations`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    return z
+      .array(
+        z.object({
+          id: z.string(),
+          slug: z.string().optional(),
+          name: z.string(),
+        }),
+      )
+      .parse(await jsonResponse(response));
+  })().catch(() => []);
+  return projects.map((project) => ({
+    ...project,
+    organizationName:
+      organizations.find(
+        (organization) =>
+          (project.organization_slug &&
+            organization.slug === project.organization_slug) ||
+          (project.organization_id &&
+            organization.id === project.organization_id),
+      )?.name ?? null,
+  }));
+}
+
 export type SupabaseOAuthConfig = {
   clientId: string;
   clientSecret: string;

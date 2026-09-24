@@ -2,8 +2,9 @@ import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button } from "@heroui/react";
-import { api, useAction, type Dashboard } from "./data";
+import { useAction, type Dashboard } from "./data";
 import { Dialog, ErrorNotice, Field, Notice, SelectField } from "./ui";
+import { catalogLabel, catalogQuery } from "./catalog";
 export function SourceDialog({
   projectId,
   data,
@@ -25,13 +26,8 @@ export function SourceDialog({
     (connection) => connection.id === connectionId,
   );
   const catalog = useQuery({
-    queryKey: ["catalog", connectionId],
-    queryFn: () =>
-      api<{ items: { id: string; name: string }[]; manualAppId?: boolean }>(
-        `/connections/${connectionId}/catalog`,
-      ),
+    ...catalogQuery(connectionId),
     enabled: open && !!connectionId,
-    staleTime: 60_000,
   });
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,9 +74,11 @@ export function SourceDialog({
           >
             <option value="">Choose a connection</option>
             {connections.map((connection) => (
-              <option value={connection.id} key={connection.id}>
-                {connection.name} · {connection.kind}
-              </option>
+              <ConnectionOption
+                connection={connection}
+                open={open}
+                key={connection.id}
+              />
             ))}
           </SelectField>
           {catalog.isFetching && (
@@ -99,7 +97,7 @@ export function SourceDialog({
               <option value="">Choose a source</option>
               {catalog.data.items.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name}
+                  {catalogLabel(item)}
                 </option>
               ))}
             </SelectField>
@@ -149,5 +147,27 @@ export function SourceDialog({
         </form>
       )}
     </Dialog>
+  );
+}
+
+function ConnectionOption({
+  connection,
+  open,
+}: {
+  connection: Dashboard["connections"][number];
+  open: boolean;
+}) {
+  const catalog = useQuery({
+    ...catalogQuery(connection.id),
+    enabled: open && connection.kind === "supabase",
+  });
+  const label =
+    connection.kind === "supabase"
+      ? catalog.data?.items.map(catalogLabel).join(", ")
+      : undefined;
+  return (
+    <option value={connection.id}>
+      {label || connection.name} · {connection.kind}
+    </option>
   );
 }

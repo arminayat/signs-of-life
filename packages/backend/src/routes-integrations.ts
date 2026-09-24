@@ -5,6 +5,7 @@ import {
   authorizeSupabase,
   exchangeSupabase,
   listSupabaseProjects,
+  listSupabaseCatalog,
   emptyCursor,
 } from "../../adapters/src/supabase-source";
 import { randomToken, hashToken } from "../../adapters/src/crypto";
@@ -142,7 +143,7 @@ export function integrationRoutes(services: Services) {
     );
     if (connection.kind === "supabase")
       return c.json({
-        items: await listSupabaseProjects(
+        items: await listSupabaseCatalog(
           await supabaseAccess(services, connection),
           services.http,
         ),

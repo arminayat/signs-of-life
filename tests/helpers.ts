@@ -44,9 +44,15 @@ export async function fixture(
             refresh_token: "test-refresh",
             expires_in: 3600,
           })
-        : Response.json([
-            { id: "fixture-project", name: "Example production" },
-          ]),
+        : String(input).endsWith("/organizations")
+          ? Response.json([{ id: "fixture-org", name: "Example organization" }])
+          : Response.json([
+              {
+                id: "fixture-project",
+                name: "Example production",
+                organization_id: "fixture-org",
+              },
+            ]),
     config,
     store,
     secrets: secretBox(config.ENCRYPTION_KEYS, "v1"),

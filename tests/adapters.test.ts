@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { parseSalesReport } from "../packages/adapters/src/apple-source";
-import { supabaseSource } from "../packages/adapters/src/supabase-source";
+import {
+  listSupabaseCatalog,
+  supabaseSource,
+} from "../packages/adapters/src/supabase-source";
 import { secretBox } from "../packages/adapters/src/crypto";
 import {
   resendTransport,
@@ -9,6 +12,41 @@ import {
 import { dailyReady, reportingDates } from "../packages/core/src/time";
 const headers = "Apple Identifier\tTitle\tProduct Type Identifier\tUnits";
 describe("source normalization", () => {
+  it("matches project organizations by slug or legacy ID without mixing names", async () => {
+    const http = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json([
+          { id: "one", name: "App", organization_slug: "org-b" },
+          { id: "two", name: "App", organization_id: "a" },
+          { id: "three", name: "Unknown", organization_id: "missing" },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        Response.json([
+          { id: "a", slug: "org-a", name: "Organization A" },
+          { id: "b", slug: "org-b", name: "Organization B" },
+        ]),
+      );
+    const result = await listSupabaseCatalog("token", http);
+    expect(result.map(({ organizationName }) => organizationName)).toEqual([
+      "Organization B",
+      "Organization A",
+      null,
+    ]);
+    expect(http.mock.calls[1][0]).toBe(
+      "https://api.supabase.com/v1/organizations",
+    );
+  });
+  it("keeps project names available when organization access fails", async () => {
+    const http = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json([{ id: "one", name: "App" }]))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }));
+    expect(await listSupabaseCatalog("token", http)).toEqual([
+      { id: "one", name: "App", organizationName: null },
+    ]);
+  });
   it("separates initial downloads and redownloads and ignores non-download products and refunds", () => {
     const report =
       headers +
@@ -32,18 +70,16 @@ describe("source normalization", () => {
     expect(() => parseSalesReport(`${headers}\n1\tExample\t1\tnope`)).toThrow();
   });
   it("only queries the read-only endpoint and never selects monitored emails", async () => {
-    const http = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        Response.json([
-          {
-            id: "11111111-1111-4111-8111-111111111111",
-            created_at: "2026-09-10 10:00:00.123456+00",
-            provider: "email",
-            is_anonymous: false,
-          },
-        ]),
-      );
+    const http = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json([
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          created_at: "2026-09-10 10:00:00.123456+00",
+          provider: "email",
+          is_anonymous: false,
+        },
+      ]),
+    );
     const result = await supabaseSource(http).collect(
       "token",
       "abc",

@@ -41,10 +41,12 @@ test("creates a project, saves its preferences and pauses notifications", async 
   await page.getByRole("button", { name: "Add source", exact: true }).click();
   await page
     .getByLabel("Connection", { exact: true })
-    .selectOption({ label: "Supabase · supabase" });
+    .selectOption({
+      label: "Example organization / Example production · supabase",
+    });
   await page
     .getByLabel("Supabase project", { exact: true })
-    .selectOption({ label: "Example production" });
+    .selectOption({ label: "Example organization / Example production" });
   await page
     .getByRole("button", { name: "Add source", exact: true })
     .last()

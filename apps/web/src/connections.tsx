@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
 import { Apple, ArrowUpRight, Cable, Plus, Zap } from "lucide-react";
 import {
-  api,
   useAction,
   useConfig,
   useDashboard,
@@ -21,6 +20,7 @@ import {
   PageHeader,
   Status,
 } from "./ui";
+import { catalogQuery } from "./catalog";
 export function ConnectionsPage() {
   const query = useDashboard(),
     config = useConfig(),
@@ -199,20 +199,26 @@ function ConnectionName({
   connection: Dashboard["connections"][number];
 }) {
   const catalog = useQuery({
-    queryKey: ["catalog", connection.id],
-    queryFn: () =>
-      api<{ items: { id: string; name: string }[] }>(
-        `/connections/${connection.id}/catalog`,
-      ),
+    ...catalogQuery(connection.id),
     enabled: connection.kind === "supabase" && connection.active,
-    staleTime: 60_000,
   });
-  const names = catalog.data?.items.map((project) => project.name).join(", ");
-  return (
-    <p className="font-medium">
-      {connection.kind === "supabase" && names ? names : connection.name}
-    </p>
-  );
+  if (connection.kind === "supabase" && catalog.data?.items.length) {
+    return (
+      <div className="grid gap-1">
+        {catalog.data.items.map((project) => (
+          <p className="font-medium" key={project.id}>
+            {project.organizationName && (
+              <span className="muted font-normal">
+                {project.organizationName} /{" "}
+              </span>
+            )}
+            {project.name}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return <p className="font-medium">{connection.name}</p>;
 }
 
 function AppleDialog({
