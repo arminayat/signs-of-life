@@ -15,40 +15,49 @@ export function postgresStore(db: Database): MonitorStore {
     },
     async resolveIdentity(identity) {
       return db.transaction(async (tx) => {
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(hashtext(${identity.issuer + ":" + identity.subject}))`,
-        );
-        const [existing] = await tx
-          .select({
-            userId: t.users.id,
-            name: t.users.name,
-            workspaceId: t.workspaces.id,
-          })
-          .from(t.identities)
-          .innerJoin(t.users, eq(t.users.id, t.identities.userId))
-          .innerJoin(t.workspaces, eq(t.workspaces.ownerId, t.users.id))
-          .where(
-            and(
-              eq(t.identities.issuer, identity.issuer),
-              eq(t.identities.subject, identity.subject),
-            ),
-          );
+        const lookup = async () => {
+          const [found] = await tx
+            .select({
+              userId: t.users.id,
+              name: t.users.name,
+              workspaceId: t.workspaces.id,
+            })
+            .from(t.identities)
+            .innerJoin(t.users, eq(t.users.id, t.identities.userId))
+            .innerJoin(t.workspaces, eq(t.workspaces.ownerId, t.users.id))
+            .where(
+              and(
+                eq(t.identities.issuer, identity.issuer),
+                eq(t.identities.subject, identity.subject),
+              ),
+            );
+          return found;
+        };
+        const existing = await lookup();
         if (existing) return existing;
         const [user] = await tx
           .insert(t.users)
           .values({ name: identity.name })
           .returning();
-        const [workspace] = await tx
-          .insert(t.workspaces)
-          .values({ ownerId: user.id })
-          .returning();
-        await tx
+        const [created] = await tx
           .insert(t.identities)
           .values({
             issuer: identity.issuer,
             subject: identity.subject,
             userId: user.id,
-          });
+          })
+          .onConflictDoNothing()
+          .returning({ userId: t.identities.userId });
+        if (!created) {
+          await tx.delete(t.users).where(eq(t.users.id, user.id));
+          const winner = await lookup();
+          if (!winner) throw new Error("Identity was removed during creation");
+          return winner;
+        }
+        const [workspace] = await tx
+          .insert(t.workspaces)
+          .values({ ownerId: user.id })
+          .returning();
         return { userId: user.id, workspaceId: workspace.id, name: user.name };
       });
     },
@@ -154,13 +163,11 @@ export function postgresStore(db: Database): MonitorStore {
           .insert(t.projects)
           .values({ workspaceId, ...input })
           .returning();
-        await tx
-          .insert(t.jobs)
-          .values({
-            workspaceId,
-            key: `daily:${project.id}`,
-            payload: { kind: "daily", projectId: project.id },
-          });
+        await tx.insert(t.jobs).values({
+          workspaceId,
+          key: `daily:${project.id}`,
+          payload: { kind: "daily", projectId: project.id },
+        });
         return project;
       });
     },
@@ -204,15 +211,13 @@ export function postgresStore(db: Database): MonitorStore {
             .delete(t.projectDestinations)
             .where(eq(t.projectDestinations.projectId, id));
           if (ids.length)
-            await tx
-              .insert(t.projectDestinations)
-              .values(
-                ids.map((destinationId) => ({
-                  workspaceId,
-                  projectId: id,
-                  destinationId,
-                })),
-              );
+            await tx.insert(t.projectDestinations).values(
+              ids.map((destinationId) => ({
+                workspaceId,
+                projectId: id,
+                destinationId,
+              })),
+            );
         }
       });
     },
@@ -278,13 +283,11 @@ export function postgresStore(db: Database): MonitorStore {
         assert(total.count < limit, "source_limit_reached");
         const [source] = await tx.insert(t.sources).values(input).returning();
         if (source.kind === "supabase")
-          await tx
-            .insert(t.jobs)
-            .values({
-              workspaceId: input.workspaceId,
-              key: `supabase:${source.id}`,
-              payload: { kind: "supabase.collect", sourceId: source.id },
-            });
+          await tx.insert(t.jobs).values({
+            workspaceId: input.workspaceId,
+            key: `supabase:${source.id}`,
+            payload: { kind: "supabase.collect", sourceId: source.id },
+          });
         if (source.kind === "apple")
           await tx
             .insert(t.jobs)

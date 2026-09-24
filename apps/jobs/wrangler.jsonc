@@ -17,7 +17,7 @@
   "hyperdrive": [
     {
       "binding": "DATABASE",
-      "id": "00000000000000000000000000000000",
+      "id": "fdfd8efbde664b0fbc616309caa22ec9",
       "localConnectionString": "postgres://signs_of_life:signs_of_life@127.0.0.1:5432/signs_of_life",
     },
   ],
