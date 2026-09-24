@@ -57,6 +57,13 @@ test.each([false, true])(
           INSERT INTO pm.workspaces (owner_id) SELECT id FROM pm.users;
           INSERT INTO pm.projects (workspace_id, name)
             SELECT id, 'Existing project' FROM pm.workspaces;
+          INSERT INTO pm.connections (workspace_id, kind, name, secret)
+            SELECT id, 'supabase', 'Linked', 'preserved-linked-secret' FROM pm.workspaces;
+          INSERT INTO pm.sources (workspace_id, project_id, connection_id, kind, external_id, name)
+            SELECT c.workspace_id, p.id, c.id, 'supabase', 'existing-ref', 'Existing source'
+            FROM pm.connections c JOIN pm.projects p ON p.workspace_id = c.workspace_id;
+          INSERT INTO pm.connections (workspace_id, kind, name, secret)
+            SELECT id, 'apple', 'Unattached', 'preserved-unattached-secret' FROM pm.workspaces;
           INSERT INTO pm_identity."user" (id, name, email)
             VALUES ('existing-auth-user', 'Existing member', 'fixture@example.test');
         `);
@@ -79,15 +86,33 @@ test.each([false, true])(
       const ledger = await db.execute(
         sql`SELECT count(*)::int AS count FROM signs_of_life_migrations.__drizzle_migrations`,
       );
-      expect(ledger.rows[0]?.count).toBe(4);
+      expect(ledger.rows[0]?.count).toBe(5);
       if (legacy) {
         const projects = await db.execute(sql`
           SELECT p.name, u.name AS owner FROM signs_of_life.projects p
           JOIN signs_of_life.workspaces w ON w.id = p.workspace_id
           JOIN signs_of_life.users u ON u.id = w.owner_id
+          ORDER BY p.name
         `);
         expect(projects.rows).toEqual([
           { name: "Existing project", owner: "Existing member" },
+          { name: "Unattached", owner: "Existing member" },
+        ]);
+        const connections = await db.execute(sql`
+          SELECT c.name, c.secret, p.name AS project FROM signs_of_life.connections c
+          JOIN signs_of_life.projects p ON p.id = c.project_id ORDER BY c.name
+        `);
+        expect(connections.rows).toEqual([
+          {
+            name: "Linked",
+            secret: "preserved-linked-secret",
+            project: "Existing project",
+          },
+          {
+            name: "Unattached",
+            secret: "preserved-unattached-secret",
+            project: "Unattached",
+          },
         ]);
         const auth = await db.execute(
           sql`SELECT id FROM signs_of_life_identity."user"`,

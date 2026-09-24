@@ -88,6 +88,8 @@ const messages: Record<string, string> = {
   source_limit_reached: "This workspace has reached its source limit.",
   destination_limit_reached:
     "This workspace has reached its destination limit.",
+  connection_project_mismatch:
+    "This connection belongs to another project. Add a connection in this project’s Sources view.",
   already_exists: "This connection or source already exists.",
   invalid_input: "Check the fields and try again.",
   verification_link_expired_or_used:

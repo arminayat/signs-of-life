@@ -1,25 +1,26 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { Button } from "@heroui/react";
 import { useAction, type Dashboard } from "./data";
 import { Dialog, ErrorNotice, Field, Notice, SelectField } from "./ui";
 import { catalogQuery } from "./catalog";
 export function SourceDialog({
   projectId,
+  initialConnectionId = "",
   data,
   open,
   onClose,
 }: {
   projectId: string;
+  initialConnectionId?: string;
   data: Dashboard;
   open: boolean;
   onClose: () => void;
 }) {
   const connections = data.connections.filter(
-    (connection) => connection.active,
+    (connection) => connection.active && connection.projectId === projectId,
   );
-  const [connectionId, setConnectionId] = useState(""),
+  const [connectionId, setConnectionId] = useState(initialConnectionId),
     [externalId, setExternalId] = useState("");
   const action = useAction();
   const connection = connections.find(
@@ -56,10 +57,8 @@ export function SourceDialog({
     >
       {!connections.length ? (
         <Notice>
-          Add a connection first.{" "}
-          <Link className="underline" to="/connections">
-            Go to Connections →
-          </Link>
+          Connect Supabase or App Store Connect in this project’s Sources view
+          first.
         </Notice>
       ) : (
         <form className="form-stack" onSubmit={submit}>

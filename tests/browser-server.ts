@@ -28,6 +28,7 @@ const project = await f.store.createProject(
 const connectionId = crypto.randomUUID();
 await f.store.saveConnection({
   id: connectionId,
+  projectId: project.id,
   workspaceId,
   kind: "supabase",
   name: "Supabase",
@@ -52,18 +53,17 @@ const source = await f.store.createSource(
   },
   100,
 );
-await f.db
-  .insert(events)
-  .values({
-    workspaceId,
-    sourceId: source.id,
-    externalId: "fixture-account",
-    occurredAt: new Date(),
-    provider: "email",
-  });
+await f.db.insert(events).values({
+  workspaceId,
+  sourceId: source.id,
+  externalId: "fixture-account",
+  occurredAt: new Date(),
+  provider: "email",
+});
 const appleConnectionId = crypto.randomUUID();
 await f.store.saveConnection({
   id: appleConnectionId,
+  projectId: project.id,
   workspaceId,
   kind: "apple",
   name: "Fixture App Store",
@@ -81,19 +81,15 @@ const appleSource = await f.store.createSource(
   },
   100,
 );
-await f.db
-  .insert(metrics)
-  .values(
-    [1, 2].map((offset) => ({
-      workspaceId,
-      sourceId: appleSource.id,
-      date: new Date(Date.now() - offset * 86400_000)
-        .toISOString()
-        .slice(0, 10),
-      downloads: offset === 1 ? 12 : 0,
-      redownloads: offset === 1 ? 3 : 0,
-    })),
-  );
+await f.db.insert(metrics).values(
+  [1, 2].map((offset) => ({
+    workspaceId,
+    sourceId: appleSource.id,
+    date: new Date(Date.now() - offset * 86400_000).toISOString().slice(0, 10),
+    downloads: offset === 1 ? 12 : 0,
+    redownloads: offset === 1 ? 3 : 0,
+  })),
+);
 const destinationId = crypto.randomUUID();
 await f.store.createDestination(
   {

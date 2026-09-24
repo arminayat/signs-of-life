@@ -19,6 +19,7 @@ export type Project = {
   createdAt: Date;
 };
 export type Connection = {
+  projectId: string | null;
   id: string;
   workspaceId: string;
   kind: SourceKind;
@@ -156,7 +157,7 @@ export interface MonitorStore {
     input: Pick<
       Connection,
       "id" | "workspaceId" | "kind" | "name" | "secret" | "externalId"
-    >,
+    > & { projectId?: string | null },
   ): Promise<void>;
   disconnect(workspaceId: string, id: string): Promise<void>;
   updateConnection(

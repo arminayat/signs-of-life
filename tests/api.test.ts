@@ -27,13 +27,27 @@ describe("API tenant and lifecycle contracts", () => {
       b = await setup();
     a.services.config.SUPABASE_OAUTH_CLIENT_ID = "test-client";
     a.services.config.SUPABASE_OAUTH_CLIENT_SECRET = "test-secret";
-    const start = await a.app.fetch(write("/connections/supabase/start", {}));
+    const project = await a.store.createProject(
+      a.member!.workspaceId,
+      { name: "OAuth project", description: "", timezone: "UTC" },
+      5,
+    );
+    const start = await a.app.fetch(
+      write("/connections/supabase/start", { projectId: project.id }),
+    );
     expect(start.status).toBe(200);
     const url = new URL(((await start.json()) as { url: string }).url);
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     const callback = `/api/connections/supabase/callback?state=${url.searchParams.get("state")}&code=fixture-code`;
     expect((await b.app.request(callback)).status).toBe(400);
-    expect((await a.app.request(callback)).status).toBe(303);
+    const response = await a.app.request(callback);
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toContain(
+      `/projects/${project.id}/sources?connected=`,
+    );
+    expect(
+      (await a.store.snapshot(a.member!.workspaceId)).connections[0].projectId,
+    ).toBe(project.id);
     expect((await a.app.request(callback)).status).toBe(400);
     expect(
       (await a.store.snapshot(a.member!.workspaceId)).connections,
@@ -41,6 +55,86 @@ describe("API tenant and lifecycle contracts", () => {
     expect(
       (await b.store.snapshot(b.member!.workspaceId)).connections,
     ).toHaveLength(0);
+  });
+  it("requires a project and prevents cross-project connection reuse", async () => {
+    const f = await setup();
+    const first = await f.store.createProject(
+      f.member!.workspaceId,
+      { name: "First", description: "", timezone: "UTC" },
+      5,
+    );
+    const second = await f.store.createProject(
+      f.member!.workspaceId,
+      { name: "Second", description: "", timezone: "UTC" },
+      5,
+    );
+    const credentials = {
+      name: "Apple",
+      issuerId: crypto.randomUUID(),
+      keyId: "ABCDEFGHIJ",
+      privateKey: "x".repeat(100),
+      vendorNumber: "123456",
+    };
+    expect(
+      (await f.app.fetch(write("/connections/apple", credentials))).status,
+    ).toBe(400);
+    const created = await f.app.fetch(
+      write("/connections/apple", { ...credentials, projectId: first.id }),
+    );
+    expect(created.status).toBe(201);
+    const { id } = (await created.json()) as { id: string };
+    expect(
+      (
+        await f.app.fetch(
+          write("/connections/apple", {
+            ...credentials,
+            projectId: second.id,
+            connectionId: id,
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await f.app.fetch(
+          write("/sources", {
+            projectId: second.id,
+            connectionId: id,
+            externalId: "12345",
+            name: "App",
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await f.app.fetch(
+          write("/sources", {
+            projectId: first.id,
+            connectionId: id,
+            externalId: "12345",
+            name: "App",
+          }),
+        )
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await f.app.fetch(
+          write("/connections/apple", { ...credentials, projectId: second.id }),
+        )
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await f.app.fetch(
+          write("/connections/apple", {
+            ...credentials,
+            projectId: crypto.randomUUID(),
+          }),
+        )
+      ).status,
+    ).toBe(404);
   });
   it("rejects unauthenticated access and cross-origin writes", async () => {
     const f = await fixture(null);

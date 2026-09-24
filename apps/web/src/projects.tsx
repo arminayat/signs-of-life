@@ -51,7 +51,6 @@ export function ProjectsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="YOUR PRODUCT PULSE"
         title="A little closer to your products."
         description="New faces, fresh downloads, and everything worth knowing."
         action={
@@ -186,7 +185,9 @@ function SetupSteps({ data }: { data: Dashboard }) {
         {
           label: "Connect a source",
           done: !!data.sources.length,
-          href: "/connections",
+          href: data.projects[0]
+            ? `/projects/${data.projects[0].id}/sources`
+            : "/",
         },
         {
           label: "Choose a destination",
@@ -232,7 +233,7 @@ function ProjectDialog({
       {
         onSuccess: (result) => {
           onClose();
-          navigate(`/projects/${result.id}`);
+          navigate(`/projects/${result.id}/sources`);
         },
       },
     );

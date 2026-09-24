@@ -73,6 +73,7 @@ export const connections = appSchema.table(
   {
     id: id(),
     workspaceId: workspace(),
+    projectId: uuid("project_id"),
     kind: text("kind").$type<SourceKind>().notNull(),
     name: text("name").notNull(),
     secret: text("secret").notNull(),
@@ -86,7 +87,16 @@ export const connections = appSchema.table(
   },
   (t) => [
     unique("connections_tenant_id").on(t.workspaceId, t.id),
-    uniqueIndex("connections_external").on(t.workspaceId, t.kind, t.externalId),
+    uniqueIndex("connections_external").on(
+      t.workspaceId,
+      t.projectId,
+      t.kind,
+      t.externalId,
+    ),
+    foreignKey({
+      columns: [t.workspaceId, t.projectId],
+      foreignColumns: [projects.workspaceId, projects.id],
+    }).onDelete("cascade"),
   ],
 );
 export const sources = appSchema.table(

@@ -25,7 +25,7 @@ test("creates a project, saves its preferences and pauses notifications", async 
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/overview$/);
+  await expect(page).toHaveURL(/\/sources$/);
   await expect(page.locator(".shell")).toHaveClass(/project-shell/);
   await page
     .getByRole("navigation", { name: "Project navigation" })
@@ -62,13 +62,16 @@ test("creates a project, saves its preferences and pauses notifications", async 
       .getByRole("navigation", { name: "Project navigation" })
       .getByRole("link", { name: "Sources", exact: true }),
   ).toHaveAttribute("aria-current", "page");
-  await page.getByRole("button", { name: "Add source", exact: true }).click();
-  await page.getByLabel("Connection", { exact: true }).selectOption({
-    label: "Example organization",
-  });
+  await page.getByRole("button", { name: "Connect App Store" }).click();
   await page
-    .getByLabel("Supabase project", { exact: true })
-    .selectOption({ label: "Example production" });
+    .getByLabel("Issuer ID")
+    .fill("11111111-1111-4111-8111-111111111111");
+  await page.getByLabel("Key ID", { exact: true }).fill("ABCDEFGHIJ");
+  await page.getByLabel("Vendor number").fill("123456");
+  await page.getByLabel("Private key (.p8)").fill("x".repeat(100));
+  await page.getByRole("button", { name: "Verify and connect" }).click();
+  await page.getByLabel("Apple app ID").fill("1234567890");
+  await page.getByLabel("App name").fill("Example production");
   await page
     .getByRole("button", { name: "Add source", exact: true })
     .last()
@@ -89,7 +92,7 @@ test("creates a project, saves its preferences and pauses notifications", async 
     page.getByRole("heading", { name: "Initial downloads", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Connect App Store Connect to see daily downloads."),
+    page.getByText("Connect Supabase to see new accounts over time."),
   ).toBeVisible();
   await page.getByRole("link", { name: "All projects", exact: true }).click();
   await expect(page.locator(".shell")).not.toHaveClass(/project-shell/);

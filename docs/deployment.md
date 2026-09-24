@@ -86,3 +86,9 @@ Before upgrading, back up, run the automated checks and inspect generated SQL mi
 ### Project views upgrade
 
 Deploy the API and web app together when introducing project Overview, Sources and Notifications. The web app uses the new authenticated `/api/projects/:id/dashboard` and `/api/projects/:id/overview` endpoints. There are no new environment variables, migrations or provider permissions. Existing connected sources and collected history populate the views; an empty chart stays empty until collection or an App Store report is available.
+
+### Project connections upgrade
+
+Apply migration 0004 with `pnpm db:migrate` before deploying the API and web app together. No new secrets or provider permissions are needed. Connection creation now requires `projectId`; clients must create a project first. Existing single-project connections are assigned automatically, unattached connections receive a named project, and already-shared connections retain collection with a legacy warning. New source attachments must use a project-owned connection.
+
+Validation: type checking, 42 backend/database tests, production build, API/web Worker dry runs and `git diff --check` pass. Browser tests were updated but not run locally for this change.

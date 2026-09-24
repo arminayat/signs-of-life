@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
 import { ArrowRight, Cable, Plus, Trash2 } from "lucide-react";
 import { useAction, when, type Dashboard, type Project } from "./data";
 import { EmptyState, ErrorNotice, Status } from "./ui";
+import { ProjectConnections } from "./connections";
 import { SourceDialog } from "./source-dialog";
 export function ProjectSources({
   project,
@@ -12,16 +14,41 @@ export function ProjectSources({
   data: Dashboard;
 }) {
   const action = useAction();
-  const [sourceOpen, setSourceOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [sourceOpen, setSourceOpen] = useState(
+    data.connections.some(
+      (connection) =>
+        connection.projectId === project.id &&
+        connection.id === params.get("connected"),
+    ),
+  );
+  const [connectionId, setConnectionId] = useState(
+    params.get("connected") ?? "",
+  );
+  const canAddSource = data.connections.some(
+    (connection) => connection.active && connection.projectId === project.id,
+  );
   const sources = data.sources.filter(
     (source) => source.projectId === project.id,
   );
   return (
     <>
+      <ProjectConnections
+        projectId={project.id}
+        data={data}
+        onConnected={(id) => {
+          setConnectionId(id);
+          setSourceOpen(true);
+        }}
+      />
       <ErrorNotice error={action.error} />
       <div className="section-heading">
         <h2>Connected sources</h2>
-        <Button size="sm" onPress={() => setSourceOpen(true)}>
+        <Button
+          size="sm"
+          isDisabled={!canAddSource}
+          onPress={() => setSourceOpen(true)}
+        >
           <Plus size={14} />
           Add source
         </Button>
@@ -80,7 +107,10 @@ export function ProjectSources({
           title="Bring your first source."
           description="Connect Supabase for account alerts or App Store Connect for daily download reports."
           action={
-            <Button onPress={() => setSourceOpen(true)}>
+            <Button
+              isDisabled={!canAddSource}
+              onPress={() => setSourceOpen(true)}
+            >
               Add a source
               <ArrowRight size={15} />
             </Button>
@@ -88,10 +118,18 @@ export function ProjectSources({
         />
       )}
       <SourceDialog
+        key={connectionId}
+        initialConnectionId={connectionId}
         projectId={project.id}
         data={data}
         open={sourceOpen}
-        onClose={() => setSourceOpen(false)}
+        onClose={() => {
+          setSourceOpen(false);
+          if (params.has("connected")) {
+            params.delete("connected");
+            setParams(params, { replace: true });
+          }
+        }}
       />
     </>
   );

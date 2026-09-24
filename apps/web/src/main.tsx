@@ -4,6 +4,7 @@ import {
   BrowserRouter,
   Link,
   NavLink,
+  Navigate,
   Route,
   Routes,
   useLocation,
@@ -17,9 +18,7 @@ import { Button } from "@heroui/react";
 import {
   Activity,
   Boxes,
-  Cable,
   Check,
-  GitBranch as Github,
   LogOut,
   Moon,
   Radio,
@@ -28,10 +27,9 @@ import {
   Sun,
 } from "lucide-react";
 import { api, ApiError, useConfig } from "./data";
-import { ErrorNotice, External, Loading, Logo } from "./ui";
+import { ErrorNotice, External, GitHubMark, Loading, Logo } from "./ui";
 import { ProjectsPage } from "./projects";
 import { ProjectPage } from "./project-detail";
-import { ConnectionsPage } from "./connections";
 import { DestinationsPage } from "./destinations";
 import { ActivityPage, SettingsPage, VerifyPage } from "./other-pages";
 import "./styles.css";
@@ -89,9 +87,6 @@ function Login() {
         <div className="mb-16">
           <Logo />
         </div>
-        <p className="eyebrow !text-[#bdcbb5]">
-          A LITTLE SIGNAL. A LOT OF CLARITY.
-        </p>
         <h1>
           Your products.
           <br />
@@ -102,7 +97,6 @@ function Login() {
           updates that matter, wherever you are.
         </p>
         <div className="login-example">
-          <p className="eyebrow !text-[#c1d1b8]">BUILT FOR YOUR EVERYDAY</p>
           <div className="flex gap-3 items-start">
             <Radio size={21} className="mt-1 text-[#d0edb4]" />
             <div>
@@ -138,7 +132,7 @@ function Login() {
             isPending={pending}
             isDisabled={config.data ? !config.data.loginEnabled : true}
           >
-            <Github size={18} />
+            <GitHubMark size={18} />
             Continue with GitHub
           </Button>
           {config.data && !config.data.loginEnabled && (
@@ -168,7 +162,6 @@ function Login() {
 }
 const nav = [
   { path: "/", label: "Projects", icon: Boxes },
-  { path: "/connections", label: "Connections", icon: Cable },
   { path: "/destinations", label: "Destinations", icon: Send },
   { path: "/activity", label: "Activity", icon: Activity },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
@@ -231,7 +224,7 @@ function App() {
         </nav>
         <div className="sidebar-footer">
           <External href={config.data?.sourceUrl ?? "#"}>
-            <Github size={15} />
+            <GitHubMark size={15} />
             <span className="nav-label">Open-source project</span>
           </External>
           <div className="user-row">
@@ -271,7 +264,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ProjectsPage />} />
           <Route path="/projects/:id/*" element={<ProjectPage />} />
-          <Route path="/connections" element={<ConnectionsPage />} />
+          <Route path="/connections" element={<Navigate to="/" replace />} />
           <Route path="/destinations" element={<DestinationsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/settings" element={<SettingsPage logout={logout} />} />

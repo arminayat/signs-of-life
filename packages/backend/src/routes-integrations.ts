@@ -22,8 +22,13 @@ export function integrationRoutes(services: Services) {
   const { store, config, secrets } = services;
   app.post("/connections/supabase/start", async (c) => {
     const input = z
-      .object({ connectionId: idSchema.optional() })
+      .object({ projectId: idSchema, connectionId: idSchema.optional() })
       .parse(await c.req.json());
+    await validateProjectConnection(
+      c.get("workspaceId"),
+      input.projectId,
+      input.connectionId,
+    );
     if (input.connectionId)
       assert(
         (await store.connection(c.get("workspaceId"), input.connectionId))
@@ -45,7 +50,11 @@ export function integrationRoutes(services: Services) {
       purpose: "supabase-oauth",
       destinationId: null,
       secret: await secrets.seal(
-        { verifier, connectionId: input.connectionId },
+        {
+          verifier,
+          connectionId: input.connectionId,
+          projectId: input.projectId,
+        },
         hash,
       ),
       expiresAt: new Date(Date.now() + 600_000),
@@ -68,10 +77,16 @@ export function integrationRoutes(services: Services) {
       c.get("workspaceId"),
     );
     assert(challenge?.secret, "oauth_state_invalid_or_expired", 400);
-    const { verifier, connectionId } = await secrets.open<{
+    const { verifier, connectionId, projectId } = await secrets.open<{
       verifier: string;
+      projectId: string;
       connectionId?: string;
     }>(challenge.secret, hash);
+    await validateProjectConnection(
+      c.get("workspaceId"),
+      projectId,
+      connectionId,
+    );
     const code = z.string().min(1).parse(c.req.query("code"));
     const tokens = await exchangeSupabase(
       supabaseOAuth(config),
@@ -81,6 +96,7 @@ export function integrationRoutes(services: Services) {
     const id = connectionId ?? crypto.randomUUID();
     await store.saveConnection({
       id,
+      projectId,
       workspaceId: c.get("workspaceId"),
       kind: "supabase",
       name: "Supabase",
@@ -96,11 +112,15 @@ export function integrationRoutes(services: Services) {
         kind: "supabase.collect",
         sourceId: source.id,
       });
-    return c.redirect(`${config.PUBLIC_URL}/connections?connected=${id}`, 303);
+    return c.redirect(
+      `${config.PUBLIC_URL}/projects/${projectId}/sources?connected=${id}`,
+      303,
+    );
   });
   app.post("/connections/apple", async (c) => {
     const input = z
       .object({
+        projectId: idSchema,
         connectionId: idSchema.optional(),
         name: textName.default("App Store Connect"),
         issuerId: z.uuid(),
@@ -109,6 +129,11 @@ export function integrationRoutes(services: Services) {
         vendorNumber: z.string().regex(/^\d{4,20}$/),
       })
       .parse(await c.req.json());
+    await validateProjectConnection(
+      c.get("workspaceId"),
+      input.projectId,
+      input.connectionId,
+    );
     if (input.connectionId)
       assert(
         (await store.connection(c.get("workspaceId"), input.connectionId))
@@ -127,6 +152,7 @@ export function integrationRoutes(services: Services) {
     const id = input.connectionId ?? crypto.randomUUID();
     await store.saveConnection({
       id,
+      projectId: input.projectId,
       workspaceId: c.get("workspaceId"),
       name: input.name,
       kind: "apple",
@@ -190,6 +216,11 @@ export function integrationRoutes(services: Services) {
       c.get("workspaceId"),
       input.connectionId,
     );
+    assert(
+      connection.projectId === input.projectId,
+      "connection_project_mismatch",
+      400,
+    );
     if (connection.kind === "supabase") {
       const token = await supabaseAccess(services, connection);
       const available = await listSupabaseProjects(token, services.http);
@@ -220,5 +251,28 @@ export function integrationRoutes(services: Services) {
     );
     return c.json({ success: true });
   });
+  async function validateProjectConnection(
+    workspaceId: string,
+    projectId: string,
+    connectionId?: string,
+  ) {
+    assert(
+      await store.project(workspaceId, projectId),
+      "project_not_found",
+      404,
+    );
+    if (!connectionId) return;
+    const connection = await store.connection(workspaceId, connectionId);
+    assert(connection, "connection_not_found", 404);
+    assert(
+      connection.projectId === projectId ||
+        (connection.projectId === null &&
+          (await store.connectionSources(workspaceId, connectionId)).some(
+            (source) => source.projectId === projectId,
+          )),
+      "connection_project_mismatch",
+      400,
+    );
+  }
   return app;
 }

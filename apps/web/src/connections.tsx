@@ -1,47 +1,45 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+
 import { Button, Card } from "@heroui/react";
 import { Apple, ArrowUpRight, Cable, Plus, Zap } from "lucide-react";
-import {
-  useAction,
-  useConfig,
-  useDashboard,
-  when,
-  type Dashboard,
-} from "./data";
-import {
-  Dialog,
-  EmptyState,
-  ErrorNotice,
-  Field,
-  Loading,
-  Notice,
-  PageHeader,
-  Status,
-} from "./ui";
+import { useAction, useConfig, when, type Dashboard } from "./data";
+import { Dialog, EmptyState, ErrorNotice, Field, Status } from "./ui";
 import { catalogQuery } from "./catalog";
-export function ConnectionsPage() {
-  const query = useDashboard(),
-    config = useConfig(),
+export function ProjectConnections({
+  projectId,
+  data,
+  onConnected,
+}: {
+  projectId: string;
+  data: Dashboard;
+  onConnected: (id: string) => void;
+}) {
+  const connections = data.connections.filter(
+    (connection) =>
+      connection.projectId === projectId ||
+      (!connection.projectId &&
+        data.sources.some(
+          (source) =>
+            source.projectId === projectId &&
+            source.connectionId === connection.id,
+        )),
+  );
+  const config = useConfig(),
     action = useAction();
   const [appleOpen, setAppleOpen] = useState(false),
     [reconnectId, setReconnectId] = useState<string>();
-  if (query.isPending) return <Loading />;
-  if (!query.data) return <ErrorNotice error={query.error} />;
   function connectSupabase(connectionId?: string) {
     action.mutate(
-      { path: "/connections/supabase/start", body: { connectionId } },
+      {
+        path: "/connections/supabase/start",
+        body: { connectionId, projectId },
+      },
       { onSuccess: (result) => location.assign(String(result.url)) },
     );
   }
   return (
     <>
-      <PageHeader
-        eyebrow="WHERE YOUR SIGNALS START"
-        title="Connect the dots."
-        description="Bring your product data together. Read-only connections, useful updates."
-      />
       <ErrorNotice error={action.error} />
       <div className="integration-grid mt-5">
         <Card className="integration-card">
@@ -101,14 +99,14 @@ export function ConnectionsPage() {
         </Card>
       </div>
       <div className="section-heading">
-        <h2>Your connections</h2>
+        <h2>Project connections</h2>
         <span className="muted text-xs">
-          {query.data.connections.length} connected accounts
+          {connections.length} connected accounts
         </span>
       </div>
-      {query.data.connections.length ? (
+      {connections.length ? (
         <Card className="overflow-hidden">
-          {query.data.connections.map((connection) => (
+          {connections.map((connection) => (
             <div className="activity-row connection-row" key={connection.id}>
               <span className="activity-icon">
                 {connection.kind === "supabase" ? (
@@ -119,6 +117,13 @@ export function ConnectionsPage() {
               </span>
               <div className="connection-details">
                 <ConnectionName connection={connection} />
+                {!connection.projectId && (
+                  <p className="muted text-xs">
+                    Legacy shared connection. Reconnecting or disconnecting
+                    affects its other projects. Create a new connection here to
+                    replace it.
+                  </p>
+                )}
                 <p className="muted text-xs">
                   Last collection: {when(connection.lastSuccessAt)}
                 </p>
@@ -171,24 +176,19 @@ export function ConnectionsPage() {
         <EmptyState
           icon={<Cable />}
           title="Your first connection is one step away."
-          description="Choose a provider above, then add its source to a project."
+          description="Choose a provider above, then add a source to this project."
         />
       )}
-      <div className="mt-5">
-        <Notice>
-          Connections can be shared across your projects. After connecting, open
-          a{" "}
-          <Link to="/" className="underline">
-            project
-          </Link>{" "}
-          to select what to monitor.
-        </Notice>
-      </div>
       <AppleDialog
         key={reconnectId ?? "new"}
+        projectId={projectId}
         open={appleOpen}
         connectionId={reconnectId}
         onClose={() => setAppleOpen(false)}
+        onConnected={(id) => {
+          setAppleOpen(false);
+          if (!reconnectId) onConnected(id);
+        }}
       />
     </>
   );
@@ -222,10 +222,14 @@ function ConnectionName({
 }
 
 function AppleDialog({
+  onConnected,
+  projectId,
   open,
   onClose,
   connectionId,
 }: {
+  projectId: string;
+  onConnected: (id: string) => void;
   open: boolean;
   onClose: () => void;
   connectionId?: string;
@@ -239,6 +243,7 @@ function AppleDialog({
         path: "/connections/apple",
         body: {
           connectionId,
+          projectId,
           name: data.get("name"),
           issuerId: data.get("issuerId"),
           keyId: data.get("keyId"),
@@ -246,7 +251,7 @@ function AppleDialog({
           privateKey: data.get("privateKey"),
         },
       },
-      { onSuccess: onClose },
+      { onSuccess: (result) => onConnected(String(result.id)) },
     );
   }
   return (
