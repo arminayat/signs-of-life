@@ -1,8 +1,16 @@
 import { useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
 import { Apple, ArrowUpRight, Cable, Plus, Zap } from "lucide-react";
-import { useAction, useConfig, useDashboard, when } from "./data";
+import {
+  api,
+  useAction,
+  useConfig,
+  useDashboard,
+  when,
+  type Dashboard,
+} from "./data";
 import {
   Dialog,
   EmptyState,
@@ -101,10 +109,7 @@ export function ConnectionsPage() {
       {query.data.connections.length ? (
         <Card className="overflow-hidden">
           {query.data.connections.map((connection) => (
-            <div
-              className="activity-row items-center flex-wrap"
-              key={connection.id}
-            >
+            <div className="activity-row connection-row" key={connection.id}>
               <span className="activity-icon">
                 {connection.kind === "supabase" ? (
                   <Zap size={18} />
@@ -112,8 +117,8 @@ export function ConnectionsPage() {
                   <Apple size={18} />
                 )}
               </span>
-              <div className="flex-1 min-w-40">
-                <p className="font-medium">{connection.name}</p>
+              <div className="connection-details">
+                <ConnectionName connection={connection} />
                 <p className="muted text-xs">
                   Last collection: {when(connection.lastSuccessAt)}
                 </p>
@@ -123,40 +128,42 @@ export function ConnectionsPage() {
                   </p>
                 )}
               </div>
-              <Status value={connection.status} />
-              <Button
-                size="sm"
-                variant="ghost"
-                onPress={() => {
-                  if (connection.kind === "supabase")
-                    connectSupabase(connection.id);
-                  else {
-                    setReconnectId(connection.id);
-                    setAppleOpen(true);
-                  }
-                }}
-              >
-                Reconnect
-              </Button>
-              {connection.active && (
+              <div className="connection-actions">
+                <Status value={connection.status} />
                 <Button
-                  variant="ghost"
                   size="sm"
+                  variant="ghost"
                   onPress={() => {
-                    if (
-                      confirm(
-                        "Disconnect this account? Its credentials will be removed and collection will stop.",
-                      )
-                    )
-                      action.mutate({
-                        path: `/connections/${connection.id}`,
-                        method: "DELETE",
-                      });
+                    if (connection.kind === "supabase")
+                      connectSupabase(connection.id);
+                    else {
+                      setReconnectId(connection.id);
+                      setAppleOpen(true);
+                    }
                   }}
                 >
-                  Disconnect
+                  Reconnect
                 </Button>
-              )}
+                {connection.active && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      if (
+                        confirm(
+                          "Disconnect this account? Its credentials will be removed and collection will stop.",
+                        )
+                      )
+                        action.mutate({
+                          path: `/connections/${connection.id}`,
+                          method: "DELETE",
+                        });
+                    }}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </Card>
@@ -186,6 +193,28 @@ export function ConnectionsPage() {
     </>
   );
 }
+function ConnectionName({
+  connection,
+}: {
+  connection: Dashboard["connections"][number];
+}) {
+  const catalog = useQuery({
+    queryKey: ["catalog", connection.id],
+    queryFn: () =>
+      api<{ items: { id: string; name: string }[] }>(
+        `/connections/${connection.id}/catalog`,
+      ),
+    enabled: connection.kind === "supabase" && connection.active,
+    staleTime: 60_000,
+  });
+  const names = catalog.data?.items.map((project) => project.name).join(", ");
+  return (
+    <p className="font-medium">
+      {connection.kind === "supabase" && names ? names : connection.name}
+    </p>
+  );
+}
+
 function AppleDialog({
   open,
   onClose,

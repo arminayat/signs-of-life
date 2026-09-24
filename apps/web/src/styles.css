@@ -461,3 +461,29 @@ h2 {
   color: var(--accent-foreground);
   border: none;
 }
+
+.activity-row.connection-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.connection-details {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+.connection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-left: auto;
+}
+@media (max-width: 640px) {
+  .connection-details {
+    flex-basis: calc(100% - 47px);
+    min-width: 0;
+  }
+  .connection-actions {
+    margin-left: 47px;
+  }
+}
