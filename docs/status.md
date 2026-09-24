@@ -28,12 +28,19 @@ This document distinguishes implemented behavior, automated verification and liv
 - Both local application and test databases were backed up and renamed to `signs_of_life` and `signs_of_life_test`. Before/after row counts and content digests match for all 21 tables in the application database. The renamed test database passes the complete automated suite.
 - Type checking, all 36 backend tests, all six isolated desktop/mobile browser tests, production build and all three Cloudflare bundle dry runs pass for the rename.
 - The local checkout was renamed to `signs-of-life`; PostgreSQL and the development app restart from that path. The API readiness endpoint returns HTTP 200 and the web page title is Signs of Life.
-- The GitHub repository was renamed to `arminayat/signs-of-life`. This does not publish the local code changes or deploy any hosted services. Hosted migrations, resource cutover and provider display names remain operator deployment steps described in the [rename guide](renaming.md).
+- The GitHub repository was renamed to `arminayat/signs-of-life`. Commit `7e4937d` published the rename, and its GitHub Actions checks passed. Hosted migrations, resource cutover and provider display names remain deployment steps described in the [rename guide](renaming.md).
+
+## Hosted deployment preparation
+
+- The intended public hostname is `https://sol.arminayat.dev`; API and job configuration use this canonical origin, and the web Worker declares it as a custom domain.
+- The `signs-of-life-jobs` and `signs-of-life-dead-letter` Cloudflare queues exist. Production auth and encryption secrets have been generated outside Git.
+- The production GitHub OAuth app `Signs of Life` is registered with homepage `https://sol.arminayat.dev` and callback `https://sol.arminayat.dev/api/auth/callback/github`. Its client credentials are stored outside Git; hosted login has not been tested.
+- No hosted PostgreSQL database, Hyperdrive configuration, Workers or custom-domain route has been deployed yet. The hostname currently falls through the zone's DNS-only wildcard record and returns 503.
 
 ## External acceptance still required
 
 - A dedicated hosted database and non-placeholder Hyperdrive configuration.
-- Installation-owned GitHub and Supabase OAuth registrations.
+- Hosted GitHub login acceptance and an installation-owned Supabase monitoring OAuth registration.
 - A Telegram bot/webhook and received test notification.
 - Resend sender verification and a received email notification.
 - A real App Store Sales and Trends report matched to the app's reporting dashboard.

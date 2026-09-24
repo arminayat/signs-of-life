@@ -37,7 +37,7 @@ The hosted deployment consists of three Workers:
 2. `signs-of-life-jobs`: Cron/Queues with the same Hyperdrive configuration.
 3. `signs-of-life`: static React assets with a service binding to the API.
 
-Wrangler config files are templates until real resources are configured. The all-zero Hyperdrive IDs must be replaced. Keep generated instance-specific configs and secrets out of Git, or commit only deliberately public non-secret configuration.
+The maintained installation uses `https://sol.arminayat.dev` as its canonical origin. The web Worker declares this hostname as a custom domain; deploying it creates a specific DNS record without changing the zone's wildcard record. API and job configs already use this origin. The all-zero Hyperdrive IDs remain placeholders until a hosted database is provisioned. Keep generated instance-specific configs and secrets out of Git, or commit only deliberately public non-secret configuration.
 
 1. Provision a standard PostgreSQL database. Keep `signs_of_life` and `signs_of_life_identity` out of exposed Data API schemas.
 2. Configure Hyperdrive for that database **with query caching disabled**, because job leases and authentication require fresh reads.

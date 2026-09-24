@@ -7,7 +7,7 @@
   "workers_dev": false,
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   "vars": {
-    "PUBLIC_URL": "https://signs-of-life.example.com",
+    "PUBLIC_URL": "https://sol.arminayat.dev",
     "AUTH_PROVIDER": "better-auth",
     "EMAIL_PROVIDER": "disabled",
     "ENCRYPTION_KEY_VERSION": "v1",
