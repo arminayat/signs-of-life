@@ -1,6 +1,6 @@
-# Product Monitor
+# Signs of Life
 
-Product Monitor is a standalone open-source repository. It is not part of Kapier.
+Signs of Life is a standalone open-source repository. It is not part of Kapier.
 
 Read `README.md` and `docs/architecture.md` before changing behavior. Deployment and provider setup are documented in `docs/deployment.md` and `docs/integrations.md`. `docs/status.md` records verified acceptance and external prerequisites.
 

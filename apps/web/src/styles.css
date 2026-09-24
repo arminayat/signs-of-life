@@ -63,6 +63,7 @@ select {
   white-space: nowrap;
 }
 .brand-mark {
+  flex-shrink: 0;
   background: #234c34;
   color: #d7f3b9;
   border-radius: 10px;
@@ -70,6 +71,10 @@ select {
   height: 34px;
   display: grid;
   place-items: center;
+}
+.brand-name {
+  white-space: normal;
+  line-height: 1.25;
 }
 .beta {
   display: inline-block;

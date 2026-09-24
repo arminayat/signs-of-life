@@ -22,6 +22,13 @@
       "when": 1789134772910,
       "tag": "0002_special_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790242280786,
+      "tag": "0003_signs_of_life",
+      "breakpoints": true
     }
   ]
 }

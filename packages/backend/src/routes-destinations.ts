@@ -35,7 +35,7 @@ async function verifyDestination(services: Services, destination: Destination) {
     key: `verify:${hash}`,
     purpose: "verification",
     notification: {
-      title: "Verify your Product Monitor destination",
+      title: "Verify your Signs of Life destination",
       text: `Confirm this email address to receive project notifications.\n\n${config.PUBLIC_URL}/verify?token=${token}\n\nThis link expires in 24 hours. If you did not request this, you can ignore this message.`,
     },
   });
@@ -141,7 +141,7 @@ export function destinationRoutes(services: Services) {
       key: `test:${crypto.randomUUID()}`,
       notification: {
         title: "Your notifications are connected",
-        text: "This is a test from Product Monitor. New account alerts and daily download reports will arrive here when enabled for a project.",
+        text: "This is a test from Signs of Life. New account alerts and daily download reports will arrive here when enabled for a project.",
       },
     });
     return c.json({ queued: true }, 202);

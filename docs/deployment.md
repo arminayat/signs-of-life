@@ -2,6 +2,9 @@
 
 Use separate integration credentials and encryption keys for each installation. Configure one canonical `PUBLIC_URL`; all UI, auth and API routes share that origin.
 
+Existing installations must follow the [Signs of Life rename guide](renaming.md)
+before upgrading; it covers database schemas, Docker volumes, cookies and hosted resources.
+
 ## Docker
 
 ```sh
@@ -16,7 +19,7 @@ For local email inspection:
 
 ```sh
 # .env: EMAIL_PROVIDER=smtp, SMTP_URL=smtp://mailpit:1025,
-# MAIL_FROM=Product Monitor <monitor@example.test>
+# MAIL_FROM=Signs of Life <signs-of-life@example.test>
 docker compose --profile mail up --build -d
 ```
 
@@ -30,15 +33,15 @@ Check `/api/health` for process health and `/api/ready` for a database-backed re
 
 The hosted deployment consists of three Workers:
 
-1. `product-monitor-api`: Hono with a Hyperdrive database binding.
-2. `product-monitor-jobs`: Cron/Queues with the same Hyperdrive configuration.
-3. `product-monitor`: static React assets with a service binding to the API.
+1. `signs-of-life-api`: Hono with a Hyperdrive database binding.
+2. `signs-of-life-jobs`: Cron/Queues with the same Hyperdrive configuration.
+3. `signs-of-life`: static React assets with a service binding to the API.
 
 Wrangler config files are templates until real resources are configured. The all-zero Hyperdrive IDs must be replaced. Keep generated instance-specific configs and secrets out of Git, or commit only deliberately public non-secret configuration.
 
-1. Provision a standard PostgreSQL database. Keep `pm` and `pm_identity` out of exposed Data API schemas.
+1. Provision a standard PostgreSQL database. Keep `signs_of_life` and `signs_of_life_identity` out of exposed Data API schemas.
 2. Configure Hyperdrive for that database **with query caching disabled**, because job leases and authentication require fresh reads.
-3. Create `product-monitor-jobs` and `product-monitor-dead-letter` queues.
+3. Create `signs-of-life-jobs` and `signs-of-life-dead-letter` queues.
 4. Set the real Hyperdrive IDs and canonical `PUBLIC_URL` in API/job configurations. Set `BUILD_REVISION` to the Git commit, and `SOURCE_URL` to the corresponding public source revision.
 5. Apply Drizzle migrations using a direct/private database connection, then place secrets in both Worker secret stores as needed.
 6. Build and deploy API, jobs, then web:
@@ -58,7 +61,7 @@ The one-minute Cron trigger redispatches abandoned jobs from PostgreSQL. Monitor
 
 ## Switching database hosts
 
-Pause API writes and jobs for the maintenance window. Back up all `pm`, `pm_identity` and `pm_migrations` schemas with `pg_dump`, restore them to the new PostgreSQL host, preserve the encryption keys and `AUTH_SECRET`, and update `DATABASE_URL` or Hyperdrive. Run migrations, check `/api/ready`, then resume execution. Keep the old database intact until application and job checks pass. Do not use Supabase-specific export/import APIs.
+Pause API writes and jobs for the maintenance window. Back up all `signs_of_life`, `signs_of_life_identity` and `signs_of_life_migrations` schemas with `pg_dump`, restore them to the new PostgreSQL host, preserve the encryption keys and `AUTH_SECRET`, and update `DATABASE_URL` or Hyperdrive. Run migrations, check `/api/ready`, then resume execution. Keep the old database intact until application and job checks pass. Do not use Supabase-specific export/import APIs.
 
 ## Switching authentication
 

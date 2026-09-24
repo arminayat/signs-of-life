@@ -6,7 +6,7 @@ The dashboard is static React/Vite using HeroUI and Tailwind. It calls a same-or
 
 `MonitorStore`, `Authentication`, `AccountSource`, `ReportSource`, `Channel`, `EmailTransport` and `SecretBox` contain the replaceable contracts. The composition layer selects implementations. No Cloudflare bindings appear inside application use cases. No browser gets a database credential.
 
-PostgreSQL is the v1 database engine. Drizzle schemas and migrations live in `pm` and `pm_identity`, outside Supabase's default exposed Data API schemas. Hosting can change between Supabase, Neon and an ordinary PostgreSQL server without changing application queries. Other SQL engines require a persistence adapter and their own migrations, not just a connection-string change.
+PostgreSQL is the v1 database engine. Drizzle schemas and migrations live in `signs_of_life` and `signs_of_life_identity`, outside Supabase's default exposed Data API schemas. Hosting can change between Supabase, Neon and an ordinary PostgreSQL server without changing application queries. Other SQL engines require a persistence adapter and their own migrations, not just a connection-string change.
 
 Better Auth is the default identity provider and stores its records through Drizzle. Supabase Auth is an alternative for platform login, independent of Supabase's monitoring-source OAuth connection. External identities map `(issuer, subject)` to an application user UUID. Nothing links identities by email.
 

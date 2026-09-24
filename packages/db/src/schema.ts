@@ -19,16 +19,16 @@ import type {
   SourceKind,
   ChannelKind,
 } from "../../core/src/model";
-export const pm = pgSchema("pm");
+export const appSchema = pgSchema("signs_of_life");
 const id = () => uuid("id").primaryKey().defaultRandom();
 const created = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
-export const users = pm.table("users", {
+export const users = appSchema.table("users", {
   id: id(),
   name: text("name").notNull(),
   createdAt: created(),
 });
-export const identities = pm.table(
+export const identities = appSchema.table(
   "identities",
   {
     issuer: text("issuer").notNull(),
@@ -39,7 +39,7 @@ export const identities = pm.table(
   },
   (t) => [primaryKey({ columns: [t.issuer, t.subject] })],
 );
-export const workspaces = pm.table(
+export const workspaces = appSchema.table(
   "workspaces",
   {
     id: id(),
@@ -54,7 +54,7 @@ const workspace = () =>
   uuid("workspace_id")
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" });
-export const projects = pm.table(
+export const projects = appSchema.table(
   "projects",
   {
     id: id(),
@@ -68,7 +68,7 @@ export const projects = pm.table(
   },
   (t) => [unique("projects_tenant_id").on(t.workspaceId, t.id)],
 );
-export const connections = pm.table(
+export const connections = appSchema.table(
   "connections",
   {
     id: id(),
@@ -89,7 +89,7 @@ export const connections = pm.table(
     uniqueIndex("connections_external").on(t.workspaceId, t.kind, t.externalId),
   ],
 );
-export const sources = pm.table(
+export const sources = appSchema.table(
   "sources",
   {
     id: id(),
@@ -120,7 +120,7 @@ export const sources = pm.table(
     }).onDelete("cascade"),
   ],
 );
-export const destinations = pm.table(
+export const destinations = appSchema.table(
   "destinations",
   {
     id: id(),
@@ -138,7 +138,7 @@ export const destinations = pm.table(
     uniqueIndex("unsubscribe_hash").on(t.unsubscribeHash),
   ],
 );
-export const projectDestinations = pm.table(
+export const projectDestinations = appSchema.table(
   "project_destinations",
   {
     workspaceId: workspace(),
@@ -157,7 +157,7 @@ export const projectDestinations = pm.table(
     }).onDelete("cascade"),
   ],
 );
-export const events = pm.table(
+export const events = appSchema.table(
   "events",
   {
     id: id(),
@@ -176,7 +176,7 @@ export const events = pm.table(
     index("event_retention").on(t.createdAt),
   ],
 );
-export const metrics = pm.table(
+export const metrics = appSchema.table(
   "metrics",
   {
     id: id(),
@@ -194,7 +194,7 @@ export const metrics = pm.table(
   },
   (t) => [uniqueIndex("metric_source_date").on(t.sourceId, t.date)],
 );
-export const reports = pm.table(
+export const reports = appSchema.table(
   "reports",
   {
     connectionId: uuid("connection_id")
@@ -208,7 +208,7 @@ export const reports = pm.table(
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.date] })],
 );
-export const deliveries = pm.table(
+export const deliveries = appSchema.table(
   "deliveries",
   {
     id: id(),
@@ -237,7 +237,7 @@ export const deliveries = pm.table(
     index("delivery_history").on(t.workspaceId, t.createdAt),
   ],
 );
-export const jobs = pm.table(
+export const jobs = appSchema.table(
   "jobs",
   {
     id: id(),
@@ -258,7 +258,7 @@ export const jobs = pm.table(
     index("due_jobs").on(t.status, t.dueAt),
   ],
 );
-export const challenges = pm.table("challenges", {
+export const challenges = appSchema.table("challenges", {
   hash: text("hash").primaryKey(),
   workspaceId: workspace(),
   purpose: text("purpose").notNull(),
@@ -269,11 +269,11 @@ export const challenges = pm.table("challenges", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: created(),
 });
-export const webhookReceipts = pm.table("webhook_receipts", {
+export const webhookReceipts = appSchema.table("webhook_receipts", {
   key: text("key").primaryKey(),
   createdAt: created(),
 });
-export const limits = pm.table("rate_limits", {
+export const limits = appSchema.table("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").notNull().default(1),
   resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),

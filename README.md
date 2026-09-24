@@ -1,6 +1,9 @@
-# Product Monitor
+# Signs of Life
 
 **Your products. In the loop.**
+
+Upgrading an existing installation? Follow the [rename guide](docs/renaming.md)
+to preserve your database and deployment resources.
 
 Open-source account alerts and download reports for people building more than one thing. Organize products into projects, connect their data sources, and receive updates through Telegram or email.
 

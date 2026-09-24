@@ -1,4 +1,4 @@
-import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { migrateDatabase } from "../packages/db/src/migrations";
 import { database } from "../packages/db/src/client";
 import { postgresStore } from "../packages/db/src/store";
 import { configuration } from "../packages/backend/src/config";
@@ -7,7 +7,7 @@ import type { ApiServices } from "../packages/backend/src/services";
 import type { Identity } from "../packages/core/src/model";
 export const testUrl =
   process.env.TEST_DATABASE_URL ??
-  "postgres://monitor:monitor@127.0.0.1:5432/monitor_test";
+  "postgres://signs_of_life:signs_of_life@127.0.0.1:5432/signs_of_life_test";
 export async function fixture(
   identity: Identity | null = {
     issuer: "test",
@@ -18,10 +18,7 @@ export async function fixture(
   if (!new URL(testUrl).pathname.endsWith("_test"))
     throw new Error("Tests require a database name ending in _test");
   const { db, close } = database(testUrl, 10);
-  await migrate(db, {
-    migrationsFolder: "./packages/db/migrations",
-    migrationsSchema: "pm_migrations",
-  });
+  await migrateDatabase(db);
   const store = postgresStore(db);
   const config = configuration(
     {
@@ -34,7 +31,7 @@ export async function fixture(
       TELEGRAM_BOT_USERNAME: "fixture_bot",
       TELEGRAM_WEBHOOK_SECRET: "test-webhook-secret-long-enough-for-validation",
       EMAIL_PROVIDER: "resend",
-      MAIL_FROM: "monitor@example.test",
+      MAIL_FROM: "signs-of-life@example.test",
       RESEND_API_KEY: "test-fixture-not-a-real-key",
     },
     "node",

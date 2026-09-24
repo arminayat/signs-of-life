@@ -48,7 +48,7 @@ const schema = z.object({
   MAX_PROJECTS: z.coerce.number().int().positive().default(5),
   MAX_SOURCES: z.coerce.number().int().positive().default(10),
   MAX_DESTINATIONS: z.coerce.number().int().positive().default(3),
-  SOURCE_URL: z.url().default("https://github.com/arminayat/product-monitor"),
+  SOURCE_URL: z.url().default("https://github.com/arminayat/signs-of-life"),
   BUILD_REVISION: z.string().default("development"),
 });
 export type Config = z.infer<typeof schema>;

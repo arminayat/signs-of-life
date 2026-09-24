@@ -2,7 +2,7 @@
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 const lines = [
-  "DATABASE_URL=postgres://monitor:monitor@db:5432/monitor",
+  "DATABASE_URL=postgres://signs_of_life:signs_of_life@db:5432/signs_of_life",
   "PUBLIC_URL=http://localhost:8080",
   `AUTH_SECRET=${randomBytes(32).toString("hex")}`,
   `ENCRYPTION_KEYS='${JSON.stringify({ v1: randomBytes(32).toString("base64") })}'`,

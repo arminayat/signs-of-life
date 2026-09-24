@@ -22,7 +22,7 @@ export function betterAuthentication(
 ): Authentication {
   const enabled = !!(config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET);
   const auth = betterAuth({
-    appName: "Product Monitor",
+    appName: "Signs of Life",
     baseURL: config.PUBLIC_URL,
     basePath: "/api/auth",
     secret: config.AUTH_SECRET,
@@ -35,7 +35,7 @@ export function betterAuthentication(
           },
         }
       : {},
-    advanced: { cookiePrefix: `pm-${config.AUTH_SESSION_VERSION}` },
+    advanced: { cookiePrefix: `signs-of-life-${config.AUTH_SESSION_VERSION}` },
     trustedOrigins: [config.PUBLIC_URL],
     emailAndPassword: { enabled: false },
     account: { accountLinking: { enabled: false }, encryptOAuthTokens: true },
@@ -91,7 +91,7 @@ export function supabaseAuthentication(
       {
         global: { fetch: http },
         cookieOptions: {
-          name: `pm-supabase-${config.AUTH_SESSION_VERSION}`,
+          name: `signs-of-life-supabase-${config.AUTH_SESSION_VERSION}`,
           path: "/",
           sameSite: "lax",
           secure: config.PUBLIC_URL.startsWith("https:"),

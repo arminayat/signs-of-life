@@ -1,5 +1,5 @@
 {
-  "name": "product-monitor",
+  "name": "signs-of-life",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "concurrently -k -n api,web,worker 'pnpm dev:api' 'pnpm dev:web' 'pnpm dev:worker'",
-    "dev:api": "tsx --env-file=.env watch apps/api/src/node.ts",
+    "dev:api": "tsx watch --env-file=.env apps/api/src/node.ts",
     "dev:web": "vite --config apps/web/vite.config.ts",
-    "dev:worker": "tsx --env-file=.env watch apps/jobs/src/node.ts",
+    "dev:worker": "tsx watch --env-file=.env apps/jobs/src/node.ts",
     "build": "vite build --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run",

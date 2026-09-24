@@ -1,11 +1,11 @@
-name: product-monitor
+name: signs-of-life
 x-server: &server
   build:
     context: .
     target: runtime
   env_file: .env
   environment:
-    DATABASE_URL: postgres://monitor:${POSTGRES_PASSWORD:-monitor}@db:5432/monitor
+    DATABASE_URL: postgres://signs_of_life:${POSTGRES_PASSWORD:-signs_of_life}@db:5432/signs_of_life
     PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
     HOST: 0.0.0.0
   restart: unless-stopped
@@ -13,12 +13,12 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: monitor
-      POSTGRES_USER: monitor
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monitor}
+      POSTGRES_DB: signs_of_life
+      POSTGRES_USER: signs_of_life
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-signs_of_life}
     volumes: [postgres-data:/var/lib/postgresql/data]
     healthcheck:
-      test: [CMD-SHELL, pg_isready -U monitor]
+      test: [CMD-SHELL, pg_isready -U signs_of_life]
       interval: 5s
       timeout: 3s
       retries: 20

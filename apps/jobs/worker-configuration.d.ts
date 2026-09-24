@@ -3,12 +3,12 @@
 interface __BaseEnv_JobBindings {
 	DATABASE: Hyperdrive;
 	JOBS: Queue;
-	PUBLIC_URL: "https://product-monitor.example.com";
+	PUBLIC_URL: "https://signs-of-life.example.com";
 	AUTH_PROVIDER: "better-auth";
 	EMAIL_PROVIDER: "disabled";
 	ENCRYPTION_KEY_VERSION: "v1";
 	BUILD_REVISION: "development";
-	SOURCE_URL: "https://github.com/arminayat/product-monitor";
+	SOURCE_URL: "https://github.com/arminayat/signs-of-life";
 	AUTH_SECRET: string;
 	ENCRYPTION_KEYS: string;
 }

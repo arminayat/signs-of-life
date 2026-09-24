@@ -1,24 +1,24 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "product-monitor-api",
+  "name": "signs-of-life-api",
   "main": "src/cloudflare.ts",
   "compatibility_date": "2026-09-11",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   "vars": {
-    "PUBLIC_URL": "https://product-monitor.example.com",
+    "PUBLIC_URL": "https://signs-of-life.example.com",
     "AUTH_PROVIDER": "better-auth",
     "EMAIL_PROVIDER": "disabled",
     "ENCRYPTION_KEY_VERSION": "v1",
     "BUILD_REVISION": "development",
-    "SOURCE_URL": "https://github.com/arminayat/product-monitor",
+    "SOURCE_URL": "https://github.com/arminayat/signs-of-life",
   },
   "hyperdrive": [
     {
       "binding": "DATABASE",
       "id": "00000000000000000000000000000000",
-      "localConnectionString": "postgres://monitor:monitor@127.0.0.1:5432/monitor",
+      "localConnectionString": "postgres://signs_of_life:signs_of_life@127.0.0.1:5432/signs_of_life",
     },
   ],
 }

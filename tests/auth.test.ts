@@ -42,7 +42,7 @@ describe("authentication adapters", () => {
       `${token}.${createHmac("sha256", f.services.config.AUTH_SECRET).update(token).digest("base64")}`,
     );
     const request = new Request("http://localhost:5173/api/session", {
-      headers: { cookie: `pm-1.session_token=${signed}` },
+      headers: { cookie: `signs-of-life-1.session_token=${signed}` },
     });
     expect(await auth.identity(request, new Headers())).toMatchObject({
       issuer: "better-auth",
@@ -50,7 +50,7 @@ describe("authentication adapters", () => {
       name: "Auth test",
     });
     const bad = new Request(request.url, {
-      headers: { cookie: `pm-1.session_token=${signed}tampered` },
+      headers: { cookie: `signs-of-life-1.session_token=${signed}tampered` },
     });
     expect(await auth.identity(bad, new Headers())).toBeNull();
     const rotated = betterAuthentication(
@@ -93,7 +93,7 @@ describe("authentication adapters", () => {
         }),
       ).toString("base64url");
     const request = new Request("http://localhost:5173/api/session", {
-      headers: { cookie: `pm-supabase-1=${value}` },
+      headers: { cookie: `signs-of-life-supabase-1=${value}` },
     });
     expect(await auth.identity(request, new Headers())).toMatchObject({
       issuer: config.SUPABASE_AUTH_URL,

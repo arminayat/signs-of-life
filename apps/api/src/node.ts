@@ -9,7 +9,7 @@ const server = serve({
   port: Number(process.env.PORT ?? 8787),
   hostname: process.env.HOST ?? "127.0.0.1",
 });
-console.log("Product Monitor API listening");
+console.log("Signs of Life API listening");
 async function shutdown() {
   server.close();
   await close();

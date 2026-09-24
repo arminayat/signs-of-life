@@ -98,7 +98,7 @@ describe("credential encryption and channels", () => {
     const http = vi.fn<typeof fetch>().mockRejectedValue(new Error("timeout"));
     const result = await resendTransport(
       "key",
-      "monitor@example.test",
+      "signs-of-life@example.test",
       http,
     ).send({
       to: "user@example.test",

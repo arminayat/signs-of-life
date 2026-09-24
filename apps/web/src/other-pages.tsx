@@ -107,7 +107,7 @@ export function SettingsPage({ logout }: { logout: () => Promise<void> }) {
       <PageHeader
         eyebrow="MAKE YOURSELF AT HOME"
         title="Your workspace."
-        description="A few details about your Product Monitor installation."
+        description="A few details about your Signs of Life installation."
       />
       <Card className="p-6 max-w-3xl">
         <h2 className="mb-5">Installation</h2>
@@ -207,7 +207,7 @@ export function VerifyPage() {
           <p className="muted">
             {action.isSuccess
               ? "This email destination is ready. Select it in your project preferences to start receiving updates."
-              : "Confirm that you want to receive Product Monitor notifications at this address."}
+              : "Confirm that you want to receive Signs of Life notifications at this address."}
           </p>
           <ErrorNotice error={action.error} />
           {action.isSuccess ? (

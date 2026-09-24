@@ -17,8 +17,8 @@ export function Logo({ compact = false }: { compact?: boolean }) {
         <Radio size={21} strokeWidth={2.3} />
       </span>
       {!compact && (
-        <span>
-          product<span className="font-normal">monitor</span>
+        <span className="brand-name">
+          Signs <span className="font-normal">of Life</span>
           <span className="beta">BETA</span>
         </span>
       )}

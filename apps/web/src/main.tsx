@@ -153,7 +153,7 @@ function Login() {
             <External
               href={
                 config.data?.sourceUrl ??
-                "https://github.com/arminayat/product-monitor"
+                "https://github.com/arminayat/signs-of-life"
               }
             >
               View source
@@ -206,7 +206,7 @@ function App() {
         Skip to content
       </a>
       <aside className="sidebar">
-        <Link to="/" aria-label="Product Monitor home">
+        <Link to="/" aria-label="Signs of Life home">
           <Logo />
         </Link>
         <p className="workspace-label">YOUR WORKSPACE</p>

@@ -11,13 +11,13 @@ Create a GitHub OAuth app for this installation:
 - Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` on the API host.
 - Set `AUTH_PROVIDER=better-auth`, a random `AUTH_SECRET`, and `AUTH_SESSION_VERSION=1`.
 
-Better Auth uses Drizzle tables in the private `pm_identity` schema. Only GitHub login is enabled; there is no password login or production development bypass.
+Better Auth uses Drizzle tables in the private `signs_of_life_identity` schema. Only GitHub login is enabled; there is no password login or production development bypass.
 
 ## Supabase Auth alternative
 
 Set `AUTH_PROVIDER=supabase`, `SUPABASE_AUTH_URL` and the project's publishable/anon `SUPABASE_AUTH_KEY`. Enable GitHub in that Auth project's dashboard with its own GitHub OAuth app. GitHub's callback is the Supabase project's `/auth/v1/callback`; allow `PUBLIC_URL/api/auth/callback` in Supabase's redirect allowlist.
 
-Sessions remain in secure, HttpOnly cookies (Secure on HTTPS). The server calls `getUser` to validate them. This provider is only for Product Monitor login; it is independent of the Supabase monitoring integration below.
+Sessions remain in secure, HttpOnly cookies (Secure on HTTPS). The server calls `getUser` to validate them. This provider is only for Signs of Life login; it is independent of the Supabase monitoring integration below.
 
 To switch providers while keeping users and projects, follow [identity migration](deployment.md#switching-authentication).
 
@@ -31,7 +31,7 @@ Register a Supabase OAuth integration. Configure **only** these scopes on that O
 
 Set the redirect URI to `PUBLIC_URL/api/connections/supabase/callback`. Set `SUPABASE_OAUTH_CLIENT_ID` and `SUPABASE_OAUTH_CLIENT_SECRET` on the API and job hosts. Supabase configures scopes at app registration; the old authorization URL `scope` parameter is deprecated.
 
-Customers click Connect Supabase, consent, and select their project. Product Monitor probes the read-only endpoint before saving a source. If `auth.users` cannot be read through that endpoint, the connection is unsupported: do not work around this by requesting write access, API secrets or hooks.
+Customers click Connect Supabase, consent, and select their project. Signs of Life probes the read-only endpoint before saving a source. If `auth.users` cannot be read through that endpoint, the connection is unsupported: do not work around this by requesting write access, API secrets or hooks.
 
 The account query only selects ID, creation time, provider and anonymous status. No email address is fetched. Polling is approximate and can miss very late commits or accounts deleted between polls. Reconnect retains source cursors; disconnect removes stored tokens.
 
@@ -54,7 +54,7 @@ Create an installation-owned bot and configure `TELEGRAM_BOT_TOKEN`, `TELEGRAM_B
 
 Register `PUBLIC_URL/api/webhooks/telegram` as the bot webhook with Telegram's `setWebhook` API, including the same `secret_token`. Use a private operator script or HTTP client that does not print the token or place it in shell history. Configure only the `message` update type.
 
-In Product Monitor, create a Telegram destination, open its expiring link, and press Start in a private chat. Return to the dashboard and wait for the verified status. Group/channel chats are intentionally unsupported in this version. Select the destination in the project's notification preferences, then send a test.
+In Signs of Life, create a Telegram destination, open its expiring link, and press Start in a private chat. Return to the dashboard and wait for the verified status. Group/channel chats are intentionally unsupported in this version. Select the destination in the project's notification preferences, then send a test.
 
 Telegram has no send idempotency key. Timeouts and interrupted sends are marked uncertain instead of retried blindly.
 

@@ -7,7 +7,7 @@ import {
   integer,
   bigint,
 } from "drizzle-orm/pg-core";
-export const auth = pgSchema("pm_identity");
+export const auth = pgSchema("signs_of_life_identity");
 export const user = auth.table("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

@@ -24,13 +24,13 @@ it("delivers through a real local SMTP protocol exchange without a managed email
       throw new Error("Expected TCP address");
     const result = await smtpTransport(
       `smtp://127.0.0.1:${address.port}`,
-      "Product Monitor <monitor@example.test>",
+      "Signs of Life <signs-of-life@example.test>",
     ).send({
       to: "recipient@example.test",
       subject: "Local SMTP test",
       text: "Your product update.",
       idempotencyKey: "smtp-test",
-      unsubscribeUrl: "https://monitor.example.test/unsubscribe/opaque",
+      unsubscribeUrl: "https://signs-of-life.example.test/unsubscribe/opaque",
     });
     expect(result.status).toBe("accepted");
     expect(messages).toHaveLength(1);

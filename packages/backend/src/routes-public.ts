@@ -27,7 +27,7 @@ export function publicRoutes(services: Services) {
       .regex(/^[a-zA-Z0-9_-]{43}$/)
       .parse(c.req.param("token"));
     return c.html(
-      `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Unsubscribe · Product Monitor</title><body style="font:18px system-ui;max-width:480px;margin:15vh auto;padding:24px"><h1>Pause email notifications?</h1><p>This will disable this email destination for all its projects.</p><form method="post" action="/api/unsubscribe/${token}"><button style="padding:12px 20px">Unsubscribe</button></form></body></html>`,
+      `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Unsubscribe · Signs of Life</title><body style="font:18px system-ui;max-width:480px;margin:15vh auto;padding:24px"><h1>Pause email notifications?</h1><p>This will disable this email destination for all its projects.</p><form method="post" action="/api/unsubscribe/${token}"><button style="padding:12px 20px">Unsubscribe</button></form></body></html>`,
     );
   });
   app.post("/unsubscribe/:token", async (c) => {
@@ -40,7 +40,7 @@ export function publicRoutes(services: Services) {
       ),
     );
     return c.html(
-      '<!doctype html><html lang="en"><title>Unsubscribed</title><h1>Email notifications paused</h1><p>You can enable this destination again in Product Monitor.</p></html>',
+      '<!doctype html><html lang="en"><title>Unsubscribed</title><h1>Email notifications paused</h1><p>You can enable this destination again in Signs of Life.</p></html>',
     );
   });
   app.post("/webhooks/telegram", async (c) => {

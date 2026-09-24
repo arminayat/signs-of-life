@@ -10,7 +10,7 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
   running = false;
 });
-console.log("Product Monitor background worker listening");
+console.log("Signs of Life background worker listening");
 try {
   while (running) {
     try {
