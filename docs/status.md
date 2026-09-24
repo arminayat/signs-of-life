@@ -18,7 +18,7 @@ This document distinguishes implemented behavior, automated verification and liv
 - 37 backend tests pass using real PostgreSQL and fake external providers, including both authentication adapters, concurrent first-login resolution, OAuth callback replay, retry limits, a local SMTP protocol exchange, and fresh/legacy database rename migrations.
 - Six desktop/mobile browser tests pass using an isolated fixture host and actual API/database operations.
 - All three Cloudflare bundles build in Wrangler deployment dry runs. The local Cloudflare runtime also passes readiness, signed Better Auth session, project creation/readback and workspace deletion checks.
-- GitHub Actions passes the full checks and builds/starts the complete Docker stack with PostgreSQL 17, migration, API, jobs and frontend. Container readiness and SPA routing pass.
+- GitHub Actions passes the full checks and builds/starts the complete Docker stack with PostgreSQL 17, migration, API, jobs and frontend. Container readiness and SPA routing pass. The `9a19f2f` release check passed in run `35986972446`.
 - The AGPL repository is public at https://github.com/arminayat/signs-of-life. A staged-source secret scan passed before publication.
 
 ## Signs of Life rename verification
@@ -35,12 +35,12 @@ This document distinguishes implemented behavior, automated verification and liv
 - The intended public hostname is `https://sol.arminayat.dev`; API and job configuration use this canonical origin, and the web Worker declares it as a custom domain.
 - The `signs-of-life-jobs` and `signs-of-life-dead-letter` Cloudflare queues exist. Production auth and encryption secrets have been generated outside Git.
 - The production GitHub OAuth app `Signs of Life` is registered with homepage `https://sol.arminayat.dev` and callback `https://sol.arminayat.dev/api/auth/callback/github`. Its client credentials are stored outside Git; hosted login has not been tested.
-- The dedicated Supabase `sol` PostgreSQL project (`riqmsygjapubslqpnadn`) is healthy in West EU (Ireland). All four Drizzle migrations have been applied, creating the private application and identity schemas. A restricted runtime role has table access without superuser privileges.
-- Hyperdrive `signs-of-life-db` connects to the direct database endpoint with verified TLS, a ten-connection limit and query caching disabled. No Workers or custom-domain route has been deployed yet. The hostname currently falls through the zone's DNS-only wildcard record and returns 503.
+- The dedicated Supabase `sol` PostgreSQL project (`riqmsygjapubslqpnadn`) is healthy in West EU (Ireland). All four Drizzle migrations have been applied, creating the private application and identity schemas. A restricted runtime role has table access without superuser privileges. Data API settings expose `public` and `graphql_public`, not the application schemas.
+- Hyperdrive `signs-of-life-db` connects to the direct database endpoint with verified TLS, a ten-connection limit and query caching disabled.
+- API, jobs and web Workers were deployed from `9a19f2f`; the web Worker owns the `sol.arminayat.dev` custom domain. The public page serves Signs of Life, `/api/health` and database-backed `/api/ready` return HTTP 200 with that revision, and `/api/config` reports GitHub login enabled. Starting login returns a GitHub authorization URL and a session cookie; the callback has not been completed with a real account.
 
 ## External acceptance still required
 
-- Hosted API/job/web Workers and custom-domain route.
 - Hosted GitHub login acceptance and an installation-owned Supabase monitoring OAuth registration.
 - A Telegram bot/webhook and received test notification.
 - Resend sender verification and a received email notification.
