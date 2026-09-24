@@ -1,0 +1,20 @@
+# Web component inventory
+
+## Implemented today
+
+| Source                                           | Components / responsibilities                                                                                                       | State and composition                                                                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| ui.tsx                                           | Logo, GitHubMark, Field, SelectField, ErrorNotice, Notice, Status, PageHeader, EmptyState, Loading, Dialog, External, ConfirmDelete | Typed props; Field wraps HeroUI; SelectField uses useId; Dialog is controlled open/onClose; ConfirmDelete uses window.confirm |
+| main.tsx                                         | ThemeToggle, Login, App                                                                                                             | Shell/router/session/config; local pending/error/theme                                                                        |
+| projects.tsx                                     | ProjectsPage, SetupSteps, ProjectDialog                                                                                             | Dashboard + modal/create navigation                                                                                           |
+| project-detail.tsx                               | ProjectPage                                                                                                                         | Scoped dashboard and nested route composition                                                                                 |
+| project-overview.tsx / project-chart.tsx         | ProjectOverview / ProjectChart                                                                                                      | Query and mapped points; chart accepts title, description, {date,value,partial?}[], empty text                                |
+| project-sources.tsx / source-dialog.tsx          | ProjectSources / SourceDialog, ConnectionOption                                                                                     | Scoped connections, URL connected param, connection/source selection, shared catalog cache                                    |
+| connections.tsx                                  | ProjectConnections, ConnectionName, AppleDialog                                                                                     | Project ownership/legacy warning; credential and reconnect forms                                                              |
+| project-notifications.tsx / project-settings.tsx | ProjectNotifications / ProjectSettings                                                                                              | Preference modal, selected destinations and mutation state                                                                    |
+| destinations.tsx                                 | DestinationsPage, DestinationDialog                                                                                                 | Verification links/messages, channel selection, send/pause/remove                                                             |
+| other-pages.tsx                                  | ActivityList, ActivityPage, SettingsPage, VerifyPage                                                                                | Shared delivery renderer, installation/delete controls, explicit capability confirmation                                      |
+
+## Planned/aspirational — placement rules
+
+Keep feature-only components in their feature modules. Reuse ui.tsx wrappers for common interactions; add generic components only after a real second use. Backend owns input authorization; frontend validation improves feedback but cannot replace it.
