@@ -49,3 +49,11 @@ This document distinguishes implemented behavior, automated verification and liv
 - Hosted readiness, login and collection/delivery checks against the deployed revision.
 
 Fixtures, dry runs and provider acceptance responses do not satisfy these live checks. No Kapier files or provider configuration have been changed by this project setup.
+
+## Project views — 2026-09-24
+
+- Project URLs now open Overview by default, with a dedicated sidebar for Overview, Sources and Notifications. Workspace navigation collapses to icons while inside a project and expands on exit; mobile navigation uses compact rows.
+- Notifications retains pause/resume and recent deliveries, with preferences edited in a modal. Delivery history is scoped to the project before applying its 100-record limit.
+- Overview displays 30-day KPIs and daily charts for observed Supabase accounts, App Store initial downloads and redownloads. Tenant-authorized PostgreSQL aggregates avoid the dashboard event-feed cap; chart tables distinguish missing reports from zero reports and label partial App Store coverage.
+- `pnpm check` passes (type checking, 41 backend tests, production build). Eight isolated desktop/mobile browser tests pass, including navigation/deep-link reload, preference persistence, populated KPIs/chart tables, empty states and overflow checks. API and web Cloudflare bundle dry runs and `git diff --check` pass.
+- No database migration, environment variable or provider-permission change is required. Deploy API and web together. These changes have not been deployed or accepted against live providers.

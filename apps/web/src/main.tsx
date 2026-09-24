@@ -36,6 +36,7 @@ import { DestinationsPage } from "./destinations";
 import { ActivityPage, SettingsPage, VerifyPage } from "./other-pages";
 import "./styles.css";
 import "./responsive.css";
+import "./project.css";
 const client = new QueryClient({
   defaultOptions: {
     queries: {
@@ -174,6 +175,7 @@ const nav = [
 ];
 function App() {
   const pathname = useLocation().pathname;
+  const inProject = pathname.startsWith("/projects/");
   const config = useConfig();
   const session = useQuery({
     queryKey: ["session"],
@@ -201,13 +203,13 @@ function App() {
     location.assign("/");
   }
   return (
-    <div className="shell">
+    <div className={`shell ${inProject ? "project-shell" : ""}`}>
       <a href="#content" className="sr-only focus:not-sr-only">
         Skip to content
       </a>
       <aside className="sidebar">
         <Link to="/" aria-label="Signs of Life home">
-          <Logo />
+          <Logo compact={inProject} />
         </Link>
         <p className="workspace-label">YOUR WORKSPACE</p>
         <nav aria-label="Main navigation">
@@ -216,23 +218,25 @@ function App() {
               key={path}
               to={path}
               end={path === "/"}
+              aria-label={label}
+              title={inProject ? label : undefined}
               className={({ isActive }) =>
-                `nav-link ${isActive ? "active" : ""}`
+                `nav-link ${isActive || (inProject && path === "/") ? "active" : ""}`
               }
             >
               <Icon size={17} />
-              {label}
+              <span className="nav-label">{label}</span>
             </NavLink>
           ))}
         </nav>
         <div className="sidebar-footer">
           <External href={config.data?.sourceUrl ?? "#"}>
             <Github size={15} />
-            Open-source project
+            <span className="nav-label">Open-source project</span>
           </External>
           <div className="user-row">
             <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
-            <div className="flex-1 min-w-0">
+            <div className="user-details flex-1 min-w-0">
               <p className="truncate font-medium">{name}</p>
               <p className="muted text-[10px]">Personal workspace</p>
             </div>
@@ -266,7 +270,7 @@ function App() {
         </div>
         <Routes>
           <Route path="/" element={<ProjectsPage />} />
-          <Route path="/projects/:id" element={<ProjectPage />} />
+          <Route path="/projects/:id/*" element={<ProjectPage />} />
           <Route path="/connections" element={<ConnectionsPage />} />
           <Route path="/destinations" element={<DestinationsPage />} />
           <Route path="/activity" element={<ActivityPage />} />

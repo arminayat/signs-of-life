@@ -82,3 +82,7 @@ The command validates every mapping in a transaction and clears Better Auth sess
 Back up the three private schemas and retain the encryption key map separately with controlled access. A database backup without its old encryption keys cannot restore provider connections. To rotate encryption keys, add a new version and select it for future writes; retain older keys until old credentials have been re-encrypted or reconnected.
 
 Before upgrading, back up, run the automated checks and inspect generated SQL migrations. Apply migrations once before starting upgraded API/jobs. For rollback, keep code compatible with the applied schema or restore a coordinated database backup during a maintenance window. Do not run `drizzle-kit push` against production.
+
+### Project views upgrade
+
+Deploy the API and web app together when introducing project Overview, Sources and Notifications. The web app uses the new authenticated `/api/projects/:id/dashboard` and `/api/projects/:id/overview` endpoints. There are no new environment variables, migrations or provider permissions. Existing connected sources and collected history populate the views; an empty chart stays empty until collection or an App Store report is available.

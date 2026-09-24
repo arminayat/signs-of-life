@@ -1,6 +1,6 @@
 // Isolated UI test host. Never imported by production entrypoints.
 import { and, eq, lte } from "drizzle-orm";
-import { jobs } from "../packages/db/src/schema";
+import { events, jobs, metrics } from "../packages/db/src/schema";
 import { serve } from "@hono/node-server";
 import { createServer } from "vite";
 import { fixture } from "./helpers";
@@ -52,6 +52,48 @@ const source = await f.store.createSource(
   },
   100,
 );
+await f.db
+  .insert(events)
+  .values({
+    workspaceId,
+    sourceId: source.id,
+    externalId: "fixture-account",
+    occurredAt: new Date(),
+    provider: "email",
+  });
+const appleConnectionId = crypto.randomUUID();
+await f.store.saveConnection({
+  id: appleConnectionId,
+  workspaceId,
+  kind: "apple",
+  name: "Fixture App Store",
+  secret: "test-only-unused",
+  externalId: null,
+});
+const appleSource = await f.store.createSource(
+  {
+    workspaceId,
+    projectId: project.id,
+    connectionId: appleConnectionId,
+    kind: "apple",
+    name: "Clearspace iOS",
+    externalId: "fixture-app",
+  },
+  100,
+);
+await f.db
+  .insert(metrics)
+  .values(
+    [1, 2].map((offset) => ({
+      workspaceId,
+      sourceId: appleSource.id,
+      date: new Date(Date.now() - offset * 86400_000)
+        .toISOString()
+        .slice(0, 10),
+      downloads: offset === 1 ? 12 : 0,
+      redownloads: offset === 1 ? 3 : 0,
+    })),
+  );
 const destinationId = crypto.randomUUID();
 await f.store.createDestination(
   {

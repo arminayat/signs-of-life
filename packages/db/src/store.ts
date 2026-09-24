@@ -6,9 +6,11 @@ import { assert } from "../../core/src/model";
 import { jobStore } from "./store-jobs";
 import { collectionStore } from "./store-collection";
 import { enqueueDelivery, fanout, workspaceLock } from "./store-delivery";
+import { overviewStore } from "./store-overview";
 export function postgresStore(db: Database): MonitorStore {
   return {
     ...jobStore(db),
+    ...overviewStore(db),
     ...collectionStore(db),
     async health() {
       await db.execute(sql`select 1`);
@@ -61,7 +63,7 @@ export function postgresStore(db: Database): MonitorStore {
         return { userId: user.id, workspaceId: workspace.id, name: user.name };
       });
     },
-    async snapshot(workspaceId) {
+    async snapshot(workspaceId, projectId) {
       const [
         projects,
         connections,
@@ -92,7 +94,12 @@ export function postgresStore(db: Database): MonitorStore {
         db
           .select()
           .from(t.deliveries)
-          .where(eq(t.deliveries.workspaceId, workspaceId))
+          .where(
+            and(
+              eq(t.deliveries.workspaceId, workspaceId),
+              projectId ? eq(t.deliveries.projectId, projectId) : undefined,
+            ),
+          )
           .orderBy(desc(t.deliveries.createdAt))
           .limit(100),
         db

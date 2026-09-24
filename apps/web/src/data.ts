@@ -46,10 +46,13 @@ export async function api<T>(
     throw new ApiError(data.error ?? "request_failed", response.status);
   return data as T;
 }
-export function useDashboard() {
+export function useDashboard(projectId?: string) {
   return useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => api<Dashboard>("/dashboard"),
+    queryKey: ["dashboard", projectId ?? "workspace"],
+    queryFn: () =>
+      api<Dashboard>(
+        projectId ? `/projects/${projectId}/dashboard` : "/dashboard",
+      ),
     refetchInterval: 15_000,
   });
 }

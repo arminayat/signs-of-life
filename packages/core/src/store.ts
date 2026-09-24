@@ -116,12 +116,23 @@ export type Snapshot = {
     provider: string;
   }[];
 };
+export type ProjectOverview = {
+  dates: string[];
+  accounts: { date: string; count: number }[];
+  downloads: {
+    date: string;
+    downloads: number;
+    redownloads: number;
+    sourceCount: number;
+  }[];
+};
 export interface MonitorStore {
   health(): Promise<void>;
   resolveIdentity(
     identity: Identity,
   ): Promise<{ userId: string; workspaceId: string; name: string }>;
-  snapshot(workspaceId: string): Promise<Snapshot>;
+  snapshot(workspaceId: string, projectId?: string): Promise<Snapshot>;
+  projectOverview(project: Project): Promise<ProjectOverview>;
   createProject(
     workspaceId: string,
     input: Pick<Project, "name" | "description" | "timezone">,

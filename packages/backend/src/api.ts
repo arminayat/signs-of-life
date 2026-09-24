@@ -118,6 +118,24 @@ export function createApi(services: ApiServices) {
   app.get("/api/dashboard", async (c) =>
     c.json(await services.store.snapshot(c.get("workspaceId"))),
   );
+  app.get("/api/projects/:id/dashboard", async (c) => {
+    const workspaceId = c.get("workspaceId");
+    const id = idSchema.parse(c.req.param("id"));
+    assert(
+      await services.store.project(workspaceId, id),
+      "project_not_found",
+      404,
+    );
+    return c.json(await services.store.snapshot(workspaceId, id));
+  });
+  app.get("/api/projects/:id/overview", async (c) => {
+    const project = await services.store.project(
+      c.get("workspaceId"),
+      idSchema.parse(c.req.param("id")),
+    );
+    assert(project, "project_not_found", 404);
+    return c.json(await services.store.projectOverview(project));
+  });
   app.post("/api/projects", async (c) => {
     const input = z
       .object({

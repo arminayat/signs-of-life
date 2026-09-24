@@ -40,4 +40,12 @@ Anonymous account IDs are remembered without notifications, so a later observed 
 
 The Connections dashboard resolves active Supabase connection labels from the existing project catalog. Each project displays its organization name followed by its project name. Grants covering multiple projects show one organization/project pair per line; unavailable or empty catalogs fall back to the saved connection label. Organization metadata is optional: if that lookup fails, project names remain available. This also applies to previously connected accounts without a migration or reconnection.
 
-The Add a source dialog uses the same cached catalog for organization/project labels in both the connection and source selectors. Supabase catalogs load when the dialog opens, so connections can be identified before selecting one.
+The Add a source dialog uses the same cached catalog, showing only distinct organization names in the connection selector and app/project names in the subsequent source selector. Supabase catalogs load when the dialog opens, so connections can be identified before selecting one.
+
+## Project views
+
+Entering a project collapses workspace navigation to an icon rail and opens a second sidebar with Overview, Sources and Notifications. Each view has a persistent URL under `/projects/:id`; the project root redirects to Overview. On small screens both navigation groups become compact rows. Leaving a project restores the full workspace sidebar.
+
+Overview reads `/api/projects/:id/overview`, which authorizes the project against the signed-in workspace and aggregates 30 calendar days directly in PostgreSQL. Supabase counts exclude anonymous accounts and group observed events by the project's timezone. They represent accounts observed since source connection, not total registered users or historical imports. App Store charts use Apple's reporting dates and stored corrected metrics. Missing reports remain absent, reported zeros remain zero, and days with only some source reports are marked partial. Dates before collection and dates after the latest successful account collection remain blank unless an event was observed. Charts include daily-value tables.
+
+Notifications shows project-scoped recent deliveries, notification pause/resume, and a modal for preferences and destination routing. Its dashboard request scopes deliveries before the latest-100 limit, so other projects cannot crowd out this project's history. Workspace-level dashboard behavior is unchanged. Sources retains source connection/removal controls. This change needs no migration, new environment variable, or provider permission; deploy the API and web app together.
