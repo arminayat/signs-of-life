@@ -7,16 +7,21 @@ import { localDay } from "../../../packages/core/src/time";
 import { api, type Dashboard, type Project } from "./data";
 import { ErrorNotice, Loading, Notice, PageHeader } from "./ui";
 import { ProjectChart } from "./project-chart";
-export function ProjectOverview({
+export function LegacyOverview({
   project,
   data,
+  range,
 }: {
   project: Project;
   data: Dashboard;
+  range: { from: string; to: string };
 }) {
   const query = useQuery({
-    queryKey: ["dashboard", project.id, "overview", project.timezone],
-    queryFn: () => api<Overview>(`/projects/${project.id}/overview`),
+    queryKey: ["dashboard", project.id, "overview", project.timezone, range],
+    queryFn: () =>
+      api<Overview>(
+        `/projects/${project.id}/overview?from=${range.from}&to=${range.to}`,
+      ),
     refetchInterval: 15_000,
   });
   const sources = data.sources.filter(
@@ -43,15 +48,6 @@ export function ProjectOverview({
     summary?.downloads.reduce((sum, day) => sum + day.redownloads, 0) ?? 0;
   return (
     <>
-      <PageHeader
-        title="Overview"
-        description="A daily picture of new accounts and App Store downloads."
-        action={
-          <Link className="text-link" to={`/projects/${project.id}/sources`}>
-            Manage sources →
-          </Link>
-        }
-      />
       <ErrorNotice error={query.error} />
       {query.isPending ? (
         <Loading />
@@ -59,7 +55,7 @@ export function ProjectOverview({
         summary && (
           <>
             <p className="muted text-xs mb-5">
-              Last 30 days · {summary.dates[0]} – {summary.dates.at(-1)}
+              {summary.dates[0]} – {summary.dates.at(-1)}
             </p>
             <div className="stat-grid">
               {[

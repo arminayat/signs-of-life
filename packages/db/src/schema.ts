@@ -108,6 +108,7 @@ export const sources = appSchema.table(
     connectionId: uuid("connection_id").notNull(),
     kind: text("kind").$type<SourceKind>().notNull(),
     externalId: text("external_id").notNull(),
+    environment: text("environment").notNull().default("production"),
     name: text("name").notNull(),
     cursor: jsonb("cursor").$type<Cursor>(),
     baseline: timestamp("baseline", { withTimezone: true })
@@ -119,7 +120,12 @@ export const sources = appSchema.table(
   },
   (t) => [
     unique("sources_tenant_id").on(t.workspaceId, t.id),
-    uniqueIndex("source_per_project").on(t.projectId, t.kind, t.externalId),
+    uniqueIndex("source_per_project").on(
+      t.projectId,
+      t.kind,
+      t.externalId,
+      t.environment,
+    ),
     foreignKey({
       columns: [t.workspaceId, t.projectId],
       foreignColumns: [projects.workspaceId, projects.id],

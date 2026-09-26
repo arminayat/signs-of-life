@@ -6,6 +6,7 @@
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | apps/api, apps/jobs, apps/web                                                | Deployable runtime/UI children; read their AGENTS.md                                                                                      |
 | packages/core, packages/db, packages/adapters, packages/backend              | Shared implementation children; read their AGENTS.md                                                                                      |
+| packages/better-auth-connector                                               | Distributable customer server plugin with its own build and KB                                                                            |
 | tests/*.test.ts, tests/helpers.ts                                            | Unit/provider contracts, real PostgreSQL lifecycle/queue/migration tests and isolated fixtures                                            |
 | tests/e2e/dashboard.spec.ts, tests/browser-server.ts                         | Browser verification and guarded real API/Vite test host                                                                                  |
 | scripts/migrate.ts, migrate-identities.ts                                    | Operator schema/identity entrypoints                                                                                                      |

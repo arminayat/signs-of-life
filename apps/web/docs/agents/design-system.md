@@ -23,3 +23,7 @@ Accessibility in code: skip link, labeled nav/buttons/fields, alert/status roles
 ## Planned/aspirational — UX rules
 
 Maintain readable axes/labels, pending/empty/error states, zero-vs-missing data and honest delivery labels. Preserve exact organization/app selection separation. Do not infer a separate design token package, external font service or design-file specification.
+
+## Implemented today — provider report rendering
+
+Provider cards use existing Card/Button/Checkbox primitives. Each shows source, definition, status, unit/currency, reporting timezone and freshness. Series/funnels include visible axes and expandable exact decimal values; cohort tables preserve provider headers, zeros and nulls. Stale retained points are explicitly partial, and no cross-provider total or currency conversion is displayed. Multiple SVG series have distinct accessible title IDs.

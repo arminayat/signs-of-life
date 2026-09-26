@@ -68,3 +68,25 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 - Health, database readiness and configuration return HTTP 200 with revision `8ca21d1`. Served HTML, JavaScript and CSS match the isolated release build byte-for-byte. Supabase monitoring remains enabled.
 - Type checking, 42 backend/database tests and the production build pass. The initial CI run caught a missing GitHub icon export from overlapping local edits; the isolated release includes its required component. No local browser checks or live provider authorization were performed for this deployment.
 - GitHub Actions [run 36038109807](https://github.com/arminayat/signs-of-life/actions/runs/36038109807) passes application checks, the repository's automated browser suite, all three Worker bundle checks, and Docker readiness/routing. A bounded 25-second API error tail observed no error events.
+
+## Ten-provider expansion — 2026-09-26
+
+### Implemented today — local source
+
+- Added Stripe, Polar, Paddle, RevenueCat, PostHog, GA4, Better Auth, WorkOS, Clerk and Auth0 monitoring, with credential/OAuth setup, actual resource discovery, independent import/live checkpoints and health, normalized billing webhooks, verified-reference deduplication and per-source event preferences. Existing operator authentication, Supabase and Apple remain supported.
+- Overview now has configurable Growth, Revenue and Usage views, native metrics/funnels/cohorts and retained date ranges. Missing/partial/unsupported values, provider reporting basis and currencies remain distinct. Native daily series retain twelve months independently of query caches; history imports are silent.
+- Added the distributable Better Auth server connector and its own agent KB; root routing now lists eight maintained children. Default source capacity is 25, with operator overrides preserved. Apple reconnect resumes collection; additive migrations 0005–0010 preserve records, repair missing daily jobs, separate environments and make notification claims atomic.
+
+### Automated verification — local only
+
+- `pnpm check` passed: TypeScript, **132 tests across 18 files**, connector build and web production build. Tests use isolated PostgreSQL databases and fixture providers, including fresh/legacy/repeated migrations, auth history beyond one page, webhook authentication, OAuth state/refresh races, private-URL protections, muted-first-source deduplication, expired-worker fencing, money precision and retained metric series.
+- API, jobs and web Cloudflare bundle dry runs passed with Wrangler 4.130.0. The connector build/pack was checked for its JS/types/README/license package contents. `git diff --check` and a 95-document agent-KB/local-link audit passed. No implementation module exceeds 500 lines.
+- Vite reports its existing advisory that the main JavaScript chunk is above 500 kB (approximately 552 kB, 171 kB gzip); route splitting is recorded in the web backlog.
+- Browser tests were **not run** for this feature, as required by the task's authorization boundary. Earlier browser/deployment records above do not validate this expansion.
+
+### Planned/aspirational — rollout and acceptance
+
+- No production migration/deployment, npm publication or new provider credential registration was performed for this expansion. The working tree still includes unrelated pre-existing changes.
+- Apply migrations **0005–0010**, configure the optional installation OAuth client pairs on API/jobs, configure `MONITOR_ALLOWED_HOSTS` for Better Auth, then deploy compatible API/jobs/web together. Customer keys, webhooks and connector installation are separate setup steps described in [Monitoring integrations](monitoring-integrations.md).
+- **0/10 new providers are live-verified.** Each still needs a real isolated connection/catalog/read and relevant webhook/new-account/report acceptance; fixtures do not establish provider plan access or receipt at a notification destination.
+- RevenueCat's API has no project-wide historical billing-event feed: native charts provide history, while events require webhooks and missed event payloads cannot be reconstructed from aggregates. Other provider retention limits and incomplete deleted-user history remain explicit. No invented Stripe MRR/churn, email matching or aggregate grand total is included.

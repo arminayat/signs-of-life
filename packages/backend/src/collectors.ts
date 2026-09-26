@@ -1,3 +1,4 @@
+import { monitoringSummary } from "./monitoring-summary";
 import type { AppleCredentials } from "../../core/src/model";
 import type { Job } from "../../core/src/store";
 import type { Services } from "./services";
@@ -106,6 +107,7 @@ export async function dailySummary(
   const next = new Date(now.getTime() + 60_000);
   if (!project.enabled || !dailyReady(now, project.timezone, project.dailyTime))
     return next;
+  await monitoringSummary(services, project, now);
   const snapshot = await store.snapshot(job.workspaceId);
   const sources = snapshot.sources.filter(
     (source) =>

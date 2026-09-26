@@ -17,3 +17,7 @@
 ## Planned/aspirational — placement rules
 
 Keep feature UI beside its feature file; shared UI stays in ui.tsx until a coherent split is useful. Add a top-level folder only for a concrete responsibility; update this map and route inventory. Do not copy a framework's conventional folder layout into documentation unless it exists.
+
+## Implemented today — monitoring modules
+
+src/monitor-connection.tsx, monitor-status.tsx, monitor-views.tsx, monitor-overview.tsx and monitor-chart.tsx are focused setup/state/report modules; src/monitoring.css owns their responsive layout. Existing project-overview.tsx remains the Supabase/Apple chart implementation. Shared provider metadata comes from core/provider-registry.ts.

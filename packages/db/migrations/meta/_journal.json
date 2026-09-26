@@ -36,6 +36,48 @@
       "when": 1790270931978,
       "tag": "0004_free_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790375871311,
+      "tag": "0005_monitoring",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790409190983,
+      "tag": "0006_monitor_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790411289498,
+      "tag": "0007_monitor_health",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790411647406,
+      "tag": "0008_source_environments",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790412005946,
+      "tag": "0009_retained_metric_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790412428657,
+      "tag": "0010_monitor_notification_claim",
+      "breakpoints": true
     }
   ]
 }

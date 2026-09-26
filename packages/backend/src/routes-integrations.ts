@@ -1,3 +1,5 @@
+import { isMonitorKind, type Resource } from "../../core/src/monitoring";
+import { adapterFor, monitoringCredentials } from "./monitoring-access";
 import { Hono } from "hono";
 import { z } from "zod";
 import { assert, type AppleCredentials } from "../../core/src/model";
@@ -159,6 +161,7 @@ export function integrationRoutes(services: Services) {
       externalId: input.vendorNumber,
       secret: await secrets.seal(credentials, id),
     });
+    await store.resumeConnection(c.get("workspaceId"), id);
     return c.json({ id }, 201);
   });
   app.get("/connections/:id/catalog", async (c) => {
@@ -167,6 +170,12 @@ export function integrationRoutes(services: Services) {
       c.get("workspaceId"),
       idSchema.parse(c.req.param("id")),
     );
+    if (isMonitorKind(connection.kind))
+      return c.json({
+        items: await adapterFor(services, connection.kind).catalog(
+          await monitoringCredentials(services, connection),
+        ),
+      });
     if (connection.kind === "supabase")
       return c.json({
         items: await listSupabaseCatalog(
@@ -202,7 +211,7 @@ export function integrationRoutes(services: Services) {
       .object({
         projectId: idSchema,
         connectionId: idSchema,
-        externalId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),
+        externalId: z.string().min(1).max(255),
         name: textName,
       })
       .parse(await c.req.json());
@@ -221,7 +230,15 @@ export function integrationRoutes(services: Services) {
       "connection_project_mismatch",
       400,
     );
-    if (connection.kind === "supabase") {
+    let resource: Resource | undefined;
+    if (isMonitorKind(connection.kind)) {
+      resource = (
+        await adapterFor(services, connection.kind).catalog(
+          await monitoringCredentials(services, connection),
+        )
+      ).find((r) => r.id === input.externalId);
+      assert(resource, "provider_resource_not_accessible", 403);
+    } else if (connection.kind === "supabase") {
       const token = await supabaseAccess(services, connection);
       const available = await listSupabaseProjects(token, services.http);
       assert(
@@ -236,13 +253,48 @@ export function integrationRoutes(services: Services) {
         new Date().toISOString(),
       );
     } else assert(/^\d+$/.test(input.externalId), "invalid_apple_app_id");
-    return c.json(
-      await store.createSource(
-        { workspaceId: c.get("workspaceId"), ...input, kind: connection.kind },
-        config.MAX_SOURCES,
-      ),
-      201,
+    const source = await store.createSource(
+      {
+        workspaceId: c.get("workspaceId"),
+        ...input,
+        kind: connection.kind,
+        environment: resource?.environment,
+      },
+      config.MAX_SOURCES,
     );
+    if (isMonitorKind(connection.kind)) {
+      // Metric discovery failure must not undo a successfully monitored source.
+      try {
+        const definitions = await adapterFor(
+          services,
+          connection.kind,
+        ).definitions(
+          await monitoringCredentials(services, connection),
+          source.externalId,
+        );
+        const definition =
+          definitions.find((d) => d.id.startsWith("native:")) || definitions[0];
+        if (definition) {
+          const snapshot = await store.monitoringSnapshot(
+            source.workspaceId,
+            source.projectId,
+          );
+          await store.saveViews(source.workspaceId, source.projectId, [
+            ...snapshot.views,
+            {
+              id: crypto.randomUUID(),
+              sourceId: source.id,
+              metric: definition.id,
+              hidden: false,
+              filters: {},
+            },
+          ]);
+        }
+      } catch {
+        /* Users can choose a report after resolving provider access. */
+      }
+    }
+    return c.json(source, 201);
   });
   app.delete("/sources/:id", async (c) => {
     await store.deleteSource(

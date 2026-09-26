@@ -1,0 +1,67 @@
+.monitor-toolbar,
+.monitor-provider-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 1.5rem 0;
+}
+.monitor-toolbar label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+}
+.monitor-section {
+  margin: 2rem 0;
+}
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 1.25rem;
+}
+.monitor-metric {
+  padding: 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.monitor-metric h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.monitor-chart {
+  width: 100%;
+  color: var(--muted);
+  overflow: visible;
+}
+.monitor-chart text {
+  font-size: 10px;
+  fill: currentColor;
+}
+.monitor-preferences {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.monitor-preferences legend {
+  font-size: 0.875rem;
+  padding: 0 0.5rem;
+}
+.monitor-view-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 40vh;
+  overflow: auto;
+}
+.monitor-view-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0;
+}

@@ -8,3 +8,7 @@ Provider secrets are explicit arguments; crypto uses the owning record ID or cha
 ## Planned/aspirational — maintenance rules
 
 Keep provider-specific HTTP/signing/parsing here; keep retries/schedules in backend and persistence in db. Never log provider payloads, authorization headers, cookie values, private keys or Telegram token-containing URLs. Add contract tests for new normalization/failure paths. Keep smtp.ts out of Cloudflare composition.
+
+## Implemented today — normalized monitoring
+
+Use bounded request/object/array validators and allowlist every returned field. Keep provider IDs only when needed for durable deduplication; hash auth account IDs on ingestion. Monetary values are decimal text with provider-specific minor-unit rules (including Stripe ISK/UGX). Keep null/missing/unavailable distinct from zero; never sum daily unique-user/rate/stock metrics. OAuth and resource discovery belong here; workspace policy and storage belong above/below this boundary respectively.

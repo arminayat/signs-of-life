@@ -1,3 +1,9 @@
+import {
+  collectMonitor,
+  collectMetric,
+  processMonitorWebhook,
+} from "./monitoring-jobs";
+import type { ProviderFailure } from "../../core/src/monitoring";
 import { AppError } from "../../core/src/model";
 import type { Job } from "../../core/src/store";
 import { hashToken } from "../../adapters/src/crypto";
@@ -36,7 +42,9 @@ async function deliver(
       (link) =>
         link.projectId === project.id && link.destinationId === destination.id,
     );
-    const sourceId = /^(?:account|daily):([^:]+):/.exec(delivery.key)?.[1];
+    const sourceId = /^(?:account|daily|monitor):([^:]+):/.exec(
+      delivery.key,
+    )?.[1];
     const sourcesActive = snapshot.sources
       .filter(
         (source) =>
@@ -147,6 +155,20 @@ export async function runOne(
       case "daily":
         next = await dailySummary(services, job, payload.projectId);
         break;
+      case "monitor.collect":
+        next = await collectMonitor(
+          services,
+          job,
+          payload.sourceId,
+          payload.historical,
+        );
+        break;
+      case "monitor.metric":
+        await collectMetric(services, job, payload.metricId);
+        break;
+      case "monitor.webhook":
+        await processMonitorWebhook(services, job, payload.inboxId);
+        break;
       case "deliver":
         next = await deliver(services, job, payload.deliveryId);
         break;
@@ -155,12 +177,46 @@ export async function runOne(
   } catch (error) {
     const code =
       error instanceof AppError ? error.code : "job_execution_failed";
+    // A newer worker owns both the checkpoint and its health report.
+    if (code === "job_lease_lost") return true;
     const payload = job.payload;
-    if (payload.kind === "supabase.collect")
+    if (
+      payload.kind === "supabase.collect" ||
+      payload.kind === "monitor.collect"
+    )
       await services.store.sourceError(payload.sourceId, code);
+    if (payload.kind === "monitor.collect")
+      await services.store.monitorError(
+        payload.sourceId,
+        payload.historical,
+        code,
+      );
     if (payload.kind === "apple.collect")
       await services.store.updateConnection(payload.connectionId, {
         status: "error",
+        lastError: code,
+      });
+    const retryAfter = (error as ProviderFailure).retryAfterSeconds;
+    let connectionId: string | undefined;
+    if (payload.kind === "monitor.collect")
+      connectionId = (
+        await services.store.source(job.workspaceId, payload.sourceId)
+      )?.connectionId;
+    if (payload.kind === "monitor.metric") {
+      const metric = await services.store.metricRequest(
+        job.workspaceId,
+        payload.metricId,
+      );
+      if (metric)
+        connectionId = (
+          await services.store.source(job.workspaceId, metric.sourceId)
+        )?.connectionId;
+    }
+    if (connectionId && retryAfter)
+      await services.store.delayProvider(connectionId, retryAfter);
+    if (connectionId && code === "provider_reconnect_required")
+      await services.store.updateConnection(connectionId, {
+        status: "reconnect_required",
         lastError: code,
       });
     const recurring = payload.kind !== "deliver";
@@ -169,7 +225,11 @@ export async function runOne(
       !terminal && (recurring || job.attempts < 8)
         ? new Date(
             Date.now() +
-              Math.min(3600, 15 * 2 ** Math.min(job.attempts, 8)) * 1000,
+              Math.max(
+                retryAfter || 0,
+                Math.min(3600, 15 * 2 ** Math.min(job.attempts, 8)),
+              ) *
+                1000,
           )
         : undefined;
     await services.store.finish(job, next, code);

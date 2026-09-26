@@ -1,3 +1,4 @@
+import { publicConnectorHttp } from "../../adapters/src/monitoring/public-http";
 import type { EmailTransport } from "../../core/src/model";
 import { database } from "../../db/src/client";
 import { postgresStore } from "../../db/src/store";
@@ -20,6 +21,7 @@ export function compose(config: Config, email?: EmailTransport) {
       : undefined);
   const services: Services = {
     http: fetch,
+    connectorHttp: publicConnectorHttp(fetch, config.RUNTIME),
     config,
     store: postgresStore(db),
     secrets: secretBox(config.ENCRYPTION_KEYS, config.ENCRYPTION_KEY_VERSION),

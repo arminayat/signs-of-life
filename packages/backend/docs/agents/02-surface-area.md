@@ -18,3 +18,7 @@ All HTTP paths begin /api. See api-contracts.md for every handler, payload and a
 | src/collectors.ts: collectAccounts, collectApple, dailySummary | Account polling, report polling and project-local notification timing                                  | Cursors/events/metrics/fanout; recurrence                                    |
 
 No standalone server, timer, CLI or Cloudflare binding is defined here; apps/api and apps/jobs host these functions.
+
+## Implemented today — expanded monitoring
+
+routes-monitoring.ts owns generalized credential/OAuth setup, report definitions/queries, dashboard views and event preferences. monitoring-access.ts owns adapters and encrypted refresh/CAS; monitoring-jobs.ts owns independent live/import pages, metric refresh and inbox processing; monitoring-matches.ts authenticates cross-provider references; monitoring-summary.ts adds selected metrics to daily delivery.

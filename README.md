@@ -51,19 +51,23 @@ The backend suite exercises real PostgreSQL transactions, tenant authorization, 
 
 ## Repository map
 
-| Directory           | Owns                                                            |
-| ------------------- | --------------------------------------------------------------- |
-| `apps/web`          | React dashboard and Cloudflare static-assets entrypoint         |
-| `apps/api`          | Node and Cloudflare Hono entrypoints                            |
-| `apps/jobs`         | Node worker and Cloudflare cron/queue entrypoints               |
-| `packages/core`     | Domain types, provider interfaces and scheduling helpers        |
-| `packages/db`       | Drizzle schemas, migrations, repositories and transaction logic |
-| `packages/adapters` | Authentication, Supabase, Apple, Telegram, email and encryption |
-| `packages/backend`  | Request handling and application use cases                      |
-| `tests`             | Unit, database integration and browser verification             |
+| Directory           | Owns                                                             |
+| ------------------- | ---------------------------------------------------------------- |
+| `apps/web`          | React dashboard and Cloudflare static-assets entrypoint          |
+| `apps/api`          | Node and Cloudflare Hono entrypoints                             |
+| `apps/jobs`         | Node worker and Cloudflare cron/queue entrypoints                |
+| `packages/core`     | Domain types, provider interfaces and scheduling helpers         |
+| `packages/db`       | Drizzle schemas, migrations, repositories and transaction logic  |
+| `packages/adapters` | Authentication, source providers, Telegram, email and encryption |
+| `packages/backend`  | Request handling and application use cases                       |
+| `tests`             | Unit, database integration and browser verification              |
 
 Read [architecture](docs/architecture.md), [deployment](docs/deployment.md), [integrations](docs/integrations.md), and [current acceptance](docs/status.md) for details.
 
 ## License
 
 All application code is available under **AGPL-3.0-only**. See [LICENSE](LICENSE). Third-party dependencies retain their own licenses. There are no proprietary feature gates, required license services, or mandatory application telemetry.
+
+## Implemented today — monitoring expansion
+
+Ten additional provider adapters, configurable Growth/Revenue/Usage reports and a read-only Better Auth connector are included in source. Follow [setup and coverage documentation](docs/monitoring-integrations.md) before release: migrations 0005–0010, provider credentials/registrations, coordinated API/jobs/web deployment and individual live acceptance are required.

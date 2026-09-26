@@ -13,3 +13,7 @@
 ## Planned/aspirational — placement rules
 
 Add a route family or use-case module only when needed; avoid generic plugin/repository scaffolding. Any new top-level folder requires a concrete boundary and this map update.
+
+## Implemented today — expanded monitoring
+
+src/routes-monitoring.ts, monitoring-access.ts, monitoring-jobs.ts, monitoring-matches.ts and monitoring-summary.ts own generalized monitoring behavior. Provider protocols stay in adapters/monitoring, SQL in db, portable types/registry in core. No customer app login hooks are introduced.

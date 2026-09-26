@@ -16,6 +16,7 @@ import {
 } from "../../adapters/src/supabase-source";
 export type Services = {
   http: typeof fetch;
+  connectorHttp?: typeof fetch;
   store: MonitorStore;
   config: Config;
   secrets: SecretBox;

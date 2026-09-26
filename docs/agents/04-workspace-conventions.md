@@ -2,7 +2,7 @@
 
 ## Implemented today
 
-Root package.json owns all dependencies and commands; child manifests are private ESM package markers (0.1.0, no own scripts/exports). pnpm-workspace.yaml includes apps/* and packages/*; pnpm-lock.yaml lockfileVersion 9 records resolution. Root pins pnpm 11.0.5, Node >=22.16.0 and TypeScript 7.0.2.
+Root package.json owns shared dependencies and commands. Runtime/internal-library child manifests are private ESM package markers; the Better Auth connector has its own build, exports and peer dependencies for distribution. pnpm-workspace.yaml includes apps/* and packages/*; pnpm-lock.yaml lockfileVersion 9 records resolution. Root pins pnpm 11.0.5, Node >=22.16.0 and TypeScript 7.0.2.
 Source uses named exports, relative extensionless imports, strict TypeScript, semicolons/double quotes and focused modules. Root tsconfig checks apps/packages/scripts/tests without emitting; there is no enforced package export boundary. .prettierignore excludes generated migrations/artifacts and secrets. No ESLint configuration is present.
 Commands from repository root:
 
@@ -24,3 +24,7 @@ Read root README.md and docs/architecture.md before behavior changes as well as 
 Do not browser-test changes unless explicitly requested in the task. When authorized, use isolated identities and _test DB; never production fixtures. Before release run pnpm check, relevant authorized browser tests and git diff --check; Cloudflare changes require bundle dry runs. Report any skipped gate.
 Preserve existing uncommitted work. Keep secrets, provider payloads and generated artifacts out of Git. Do not borrow another product's credentials. Maintain behavior/deployment docs with relevant changes.
 For a new child, first establish actual manifest/source and responsibility, then build its KB and add it to project map. Add top-level folders only for a concrete cross-project responsibility; no speculative frameworks or duplicate docs indexes.
+
+## Implemented today — connector build and acceptance
+
+Root pnpm build/check includes the independently packaged Better Auth connector build. Its prepack cleans only its generated dist directory, then emits ESM/declarations and includes LICENSE. Run pnpm test (not bare vitest) to load test environment variables. Every new provider needs a real connection/read smoke test before live-verified status; automated fixture evidence is recorded separately in docs/status.md.

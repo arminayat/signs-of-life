@@ -34,6 +34,22 @@ const schema = z.object({
   SUPABASE_AUTH_KEY: z.string().optional(),
   SUPABASE_OAUTH_CLIENT_ID: z.string().optional(),
   SUPABASE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  STRIPE_OAUTH_CLIENT_ID: z.string().optional(),
+  STRIPE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  POLAR_OAUTH_CLIENT_ID: z.string().optional(),
+  POLAR_OAUTH_CLIENT_SECRET: z.string().optional(),
+  POSTHOG_OAUTH_CLIENT_ID: z.string().optional(),
+  POSTHOG_OAUTH_CLIENT_SECRET: z.string().optional(),
+  GA4_OAUTH_CLIENT_ID: z.string().optional(),
+  GA4_OAUTH_CLIENT_SECRET: z.string().optional(),
+  MONITOR_ALLOWED_HOSTS: z
+    .union([z.string(), z.array(z.string())])
+    .default("")
+    .transform((v) =>
+      (Array.isArray(v) ? v : v.split(","))
+        .map((h) => h.trim().toLowerCase())
+        .filter(Boolean),
+    ),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_BOT_USERNAME: z
     .string()
@@ -46,12 +62,14 @@ const schema = z.object({
   RESEND_WEBHOOK_SECRET: z.string().optional(),
   SMTP_URL: z.string().optional(),
   MAX_PROJECTS: z.coerce.number().int().positive().default(5),
-  MAX_SOURCES: z.coerce.number().int().positive().default(10),
+  MAX_SOURCES: z.coerce.number().int().positive().default(25),
   MAX_DESTINATIONS: z.coerce.number().int().positive().default(3),
   SOURCE_URL: z.url().default("https://github.com/arminayat/signs-of-life"),
   BUILD_REVISION: z.string().default("development"),
 });
-export type Config = z.infer<typeof schema>;
+export type Config = z.infer<typeof schema> & {
+  RUNTIME: "node" | "cloudflare";
+};
 export function configuration(
   input: Record<string, unknown>,
   runtime: "node" | "cloudflare",
@@ -82,5 +100,5 @@ export function configuration(
     (!config.TELEGRAM_BOT_USERNAME || !config.TELEGRAM_WEBHOOK_SECRET)
   )
     throw new Error("Telegram username and webhook secret required");
-  return config;
+  return { ...config, RUNTIME: runtime };
 }

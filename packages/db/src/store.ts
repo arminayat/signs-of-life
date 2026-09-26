@@ -1,3 +1,4 @@
+import { sourceStore } from "./store-sources";
 import { and, count, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import * as t from "./schema";
@@ -6,10 +7,13 @@ import { assert } from "../../core/src/model";
 import { jobStore } from "./store-jobs";
 import { collectionStore } from "./store-collection";
 import { enqueueDelivery, fanout, workspaceLock } from "./store-delivery";
+import { monitoringStore } from "./store-monitoring";
 import { overviewStore } from "./store-overview";
 export function postgresStore(db: Database): MonitorStore {
   return {
     ...jobStore(db),
+    ...monitoringStore(db),
+    ...sourceStore(db),
     ...overviewStore(db),
     ...collectionStore(db),
     async health() {
@@ -278,68 +282,6 @@ export function postgresStore(db: Database): MonitorStore {
             eq(t.connections.workspaceId, workspaceId),
             eq(t.connections.id, id),
           ),
-        );
-    },
-    async createSource(input, limit) {
-      return db.transaction(async (tx) => {
-        await workspaceLock(tx, input.workspaceId);
-        const [total] = await tx
-          .select({ count: count() })
-          .from(t.sources)
-          .where(eq(t.sources.workspaceId, input.workspaceId));
-        assert(total.count < limit, "source_limit_reached");
-        const [source] = await tx.insert(t.sources).values(input).returning();
-        if (source.kind === "supabase")
-          await tx.insert(t.jobs).values({
-            workspaceId: input.workspaceId,
-            key: `supabase:${source.id}`,
-            payload: { kind: "supabase.collect", sourceId: source.id },
-          });
-        if (source.kind === "apple")
-          await tx
-            .insert(t.jobs)
-            .values({
-              workspaceId: input.workspaceId,
-              key: `apple:${source.connectionId}`,
-              payload: {
-                kind: "apple.collect",
-                connectionId: source.connectionId,
-              },
-            })
-            .onConflictDoUpdate({
-              target: t.jobs.key,
-              set: { dueAt: new Date(), status: "pending" },
-              setWhere: sql`${t.jobs.status} != 'running'`,
-            });
-        return source;
-      });
-    },
-    async source(workspaceId, id) {
-      return (
-        await db
-          .select()
-          .from(t.sources)
-          .where(
-            and(eq(t.sources.workspaceId, workspaceId), eq(t.sources.id, id)),
-          )
-      )[0];
-    },
-    async connectionSources(workspaceId, connectionId) {
-      return db
-        .select()
-        .from(t.sources)
-        .where(
-          and(
-            eq(t.sources.workspaceId, workspaceId),
-            eq(t.sources.connectionId, connectionId),
-          ),
-        );
-    },
-    async deleteSource(workspaceId, id) {
-      await db
-        .delete(t.sources)
-        .where(
-          and(eq(t.sources.workspaceId, workspaceId), eq(t.sources.id, id)),
         );
     },
     async createDestination(input, limit) {

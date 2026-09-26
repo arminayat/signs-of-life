@@ -1,6 +1,7 @@
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import * as t from "./schema";
+import * as m from "./schema-monitoring";
 import type { Job, MonitorStore } from "../../core/src/store";
 export function jobStore(
   db: Database,
@@ -115,7 +116,7 @@ export function jobStore(
         .delete(t.events)
         .where(
           and(
-            lt(t.events.createdAt, history),
+            lt(t.events.createdAt, new Date(Date.now() - 365 * 86400_000)),
             sql`exists(select 1 from ${t.sources} where ${t.sources.id} = ${t.events.sourceId} and (${t.sources.cursor}->>'at')::timestamptz > ${t.events.occurredAt} + interval '5 minutes')`,
           ),
         );
@@ -138,9 +139,39 @@ export function jobStore(
       await db
         .delete(t.webhookReceipts)
         .where(lt(t.webhookReceipts.createdAt, history));
-      const metricDate = new Date(Date.now() - 90 * 86400_000)
+      const metricDate = new Date(Date.now() - 365 * 86400_000)
         .toISOString()
         .slice(0, 10);
+      // Keep minimal event identities through imports and any stalled live cursor.
+      await db
+        .delete(m.monitorEvents)
+        .where(
+          and(
+            lt(
+              m.monitorEvents.occurredAt,
+              new Date(Date.now() - 365 * 86400_000),
+            ),
+            sql`not exists (select 1 from ${m.monitorStates} s join ${t.sources} src on src.id = s.source_id where src.project_id = ${m.monitorEvents.projectId} and (s.history_done = false or s.live_from <= ${m.monitorEvents.occurredAt} + interval '5 minutes'))`,
+          ),
+        );
+      await db
+        .delete(m.monitorMetrics)
+        .where(sql`(${m.monitorMetrics.query}->>'from') < ${metricDate}`);
+      await db
+        .delete(m.monitorSeries)
+        .where(lt(m.monitorSeries.date, metricDate));
+      await db
+        .update(m.monitorEvents)
+        .set({ amount: null, currency: null })
+        .where(lt(m.monitorEvents.occurredAt, history));
+      await db
+        .delete(m.monitorInbox)
+        .where(
+          and(
+            lt(m.monitorInbox.createdAt, history),
+            sql`not exists (select 1 from ${t.jobs} j where j.payload->>'inboxId' = ${m.monitorInbox.id}::text and j.status in ('pending', 'running'))`,
+          ),
+        );
       await db.delete(t.metrics).where(lt(t.metrics.date, metricDate));
       await db.delete(t.reports).where(lt(t.reports.date, metricDate));
     },

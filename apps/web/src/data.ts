@@ -18,6 +18,12 @@ export type AppConfig = {
   sourceUrl: string;
   revision: string;
   sources: { supabase: boolean; apple: boolean };
+  monitoring: Partial<
+    Record<
+      import("../../../packages/core/src/monitoring").MonitorKind,
+      { credentials: boolean; oauth: boolean }
+    >
+  >;
   channels: { telegram: boolean; email: boolean };
   limits: { projects: number; sources: number; destinations: number };
 };

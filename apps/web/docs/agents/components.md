@@ -18,3 +18,7 @@
 ## Planned/aspirational — placement rules
 
 Keep feature-only components in their feature modules. Reuse ui.tsx wrappers for common interactions; add generic components only after a real second use. Backend owns input authorization; frontend validation improves feedback but cannot replace it.
+
+## Implemented today — expanded monitoring
+
+monitor-connection.tsx owns provider setup/webhook dialogs; monitor-status.tsx owns history/live health and per-event preferences; monitor-views.tsx owns ordered/hidden filtered views; monitor-overview.tsx owns ranges and provider cards; monitor-chart.tsx owns aggregate charts/funnel bars/cohort tables and exact values. monitoring.css supplies responsive layouts. project-overview.tsx exports LegacyOverview for existing Supabase/Apple charts.

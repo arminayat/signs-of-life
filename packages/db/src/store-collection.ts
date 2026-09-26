@@ -146,7 +146,10 @@ export function collectionStore(
         .where(eq(t.sources.id, id));
     },
     async updateConnection(id, patch) {
-      await db.update(t.connections).set(patch).where(eq(t.connections.id, id));
+      await db
+        .update(t.connections)
+        .set(patch)
+        .where(and(eq(t.connections.id, id), eq(t.connections.active, true)));
     },
     async refreshLock(id, until) {
       return (
@@ -157,6 +160,7 @@ export function collectionStore(
             .where(
               and(
                 eq(t.connections.id, id),
+                eq(t.connections.active, true),
                 sql`(${t.connections.refreshLease} is null or ${t.connections.refreshLease} < now())`,
               ),
             )

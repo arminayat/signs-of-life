@@ -1,3 +1,4 @@
+import { MonitorPreferences } from "./monitor-status";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
@@ -69,6 +70,7 @@ export function ProjectNotifications({
           {project.enabled ? "Pause notifications" : "Resume notifications"}
         </Button>
       </Card>
+      <MonitorPreferences projectId={project.id} data={data} />
       <div className="section-heading">
         <h2>Recent deliveries</h2>
         <span className="muted text-xs">Latest 100 · up to 30 days</span>

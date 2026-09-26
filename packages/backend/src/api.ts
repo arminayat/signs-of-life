@@ -7,6 +7,9 @@ import { AppError, assert } from "../../core/src/model";
 import { validTimezone } from "../../core/src/time";
 import { integrationRoutes } from "./routes-integrations";
 import { destinationRoutes } from "./routes-destinations";
+import { monitoringRoutes } from "./routes-monitoring";
+import { monitoringOAuth } from "./monitoring-access";
+import { monitorKinds } from "../../core/src/monitoring";
 import { publicRoutes } from "./routes-public";
 export type ApiEnv = {
   Variables: { workspaceId: string; userId: string; name: string };
@@ -69,9 +72,21 @@ export function createApi(services: ApiServices) {
       sourceUrl: services.config.SOURCE_URL,
       revision: services.config.BUILD_REVISION,
       sources: {
-        supabase: !!services.config.SUPABASE_OAUTH_CLIENT_ID,
+        supabase: !!(
+          services.config.SUPABASE_OAUTH_CLIENT_ID &&
+          services.config.SUPABASE_OAUTH_CLIENT_SECRET
+        ),
         apple: true,
       },
+      monitoring: Object.fromEntries(
+        monitorKinds.map((kind) => [
+          kind,
+          {
+            credentials: true,
+            oauth: !!monitoringOAuth(services.config, kind),
+          },
+        ]),
+      ),
       channels: {
         telegram: !!services.channels.telegram,
         email: !!services.channels.email,
@@ -134,7 +149,21 @@ export function createApi(services: ApiServices) {
       idSchema.parse(c.req.param("id")),
     );
     assert(project, "project_not_found", 404);
-    return c.json(await services.store.projectOverview(project));
+    const from = c.req.query("from"),
+      to = c.req.query("to");
+    let range: { from: string; to: string } | undefined;
+    if (from || to) {
+      range = z
+        .object({ from: z.iso.date(), to: z.iso.date() })
+        .parse({ from, to });
+      assert(
+        range.from <= range.to &&
+          Date.parse(range.from) >= Date.now() - 366 * 86400_000 &&
+          Date.parse(range.to) <= Date.now(),
+        "invalid_date_range",
+      );
+    }
+    return c.json(await services.store.projectOverview(project, range));
   });
   app.post("/api/projects", async (c) => {
     const input = z
@@ -190,6 +219,7 @@ export function createApi(services: ApiServices) {
     return services.auth.logout(c.req.raw);
   });
   app.route("/api", integrationRoutes(services));
+  app.route("/api", monitoringRoutes(services));
   app.route("/api", destinationRoutes(services));
   app.notFound((c) => c.json({ error: "not_found" }, 404));
   return app;

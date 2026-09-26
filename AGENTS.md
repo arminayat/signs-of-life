@@ -44,6 +44,6 @@ Read [README.md](README.md) and [docs/architecture.md](docs/architecture.md) bef
 
 ## Layer and file selection
 
-Implemented today: root WORKSPACE with seven SINGLE PROJECT children under apps/ and packages/. Child KBs include all seven numbered core files and relevant type-specific guides; their AGENTS.md files list the final selection. apps/ and packages/ are grouping directories, not independent projects. Ignored artifacts/release-scan is generated output, not a maintained child.
+Implemented today: root WORKSPACE with eight SINGLE PROJECT children under apps/ and packages/. Child KBs include all seven numbered core files and relevant type-specific guides; their AGENTS.md files list the final selection. apps/ and packages/ are grouping directories, not independent projects. Ignored artifacts/release-scan is generated output, not a maintained child.
 
 Implemented today: this operating protocol requires agents to maintain memory; automatic post-edit hooks and a CI memory checker are not present.

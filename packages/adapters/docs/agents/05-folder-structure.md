@@ -2,8 +2,8 @@
 
 ## Implemented today
 
-src/ contains seven focused modules: auth.ts, supabase-source.ts, apple-source.ts, channels.ts, smtp.ts, crypto.ts, http.ts. package.json is a private workspace marker; AGENTS.md/docs/agents provide memory.
-A provider plugin registry, local tests/, routes/, SDK output and barrel index are not present. Tests live at workspace root.
+src/ contains monitoring/ provider modules plus the original focused modules: auth.ts, supabase-source.ts, apple-source.ts, channels.ts, smtp.ts, crypto.ts, http.ts. package.json is a private workspace marker; AGENTS.md/docs/agents provide memory.
+monitoring/index.ts selects typed provider implementations; core/provider-registry.ts owns setup metadata. A dynamic plugin loader, local tests/, routes/ and SDK output are not present. Tests live at workspace root.
 
 ## Planned/aspirational — placement rules
 

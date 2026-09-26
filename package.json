@@ -12,7 +12,7 @@
     "dev:api": "tsx watch --env-file=.env apps/api/src/node.ts",
     "dev:web": "vite --config apps/web/vite.config.ts",
     "dev:worker": "tsx watch --env-file=.env apps/jobs/src/node.ts",
-    "build": "vite build --config apps/web/vite.config.ts",
+    "build": "pnpm --dir packages/better-auth-connector build && vite build --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run",
     "test:watch": "vitest",

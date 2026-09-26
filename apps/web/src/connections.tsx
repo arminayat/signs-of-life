@@ -1,3 +1,12 @@
+import {
+  isMonitorKind,
+  type MonitorKind,
+} from "../../../packages/core/src/monitoring";
+import {
+  MonitorConnectionDialog,
+  ProviderPicker,
+  WebhookDialog,
+} from "./monitor-connection";
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -29,6 +38,8 @@ export function ProjectConnections({
     action = useAction();
   const [appleOpen, setAppleOpen] = useState(false),
     [reconnectId, setReconnectId] = useState<string>();
+  const [monitorKind, setMonitorKind] = useState<MonitorKind>();
+  const [webhookId, setWebhookId] = useState<string>();
   function connectSupabase(connectionId?: string) {
     action.mutate(
       {
@@ -98,6 +109,12 @@ export function ProjectConnections({
           </Button>
         </Card>
       </div>
+      <ProviderPicker
+        onSelect={(kind) => {
+          setReconnectId(undefined);
+          setMonitorKind(kind);
+        }}
+      />
       <div className="section-heading">
         <h2>Project connections</h2>
         <span className="muted text-xs">
@@ -111,8 +128,10 @@ export function ProjectConnections({
               <span className="activity-icon">
                 {connection.kind === "supabase" ? (
                   <Zap size={18} />
-                ) : (
+                ) : connection.kind === "apple" ? (
                   <Apple size={18} />
+                ) : (
+                  <Cable size={18} />
                 )}
               </span>
               <div className="connection-details">
@@ -141,7 +160,10 @@ export function ProjectConnections({
                   onPress={() => {
                     if (connection.kind === "supabase")
                       connectSupabase(connection.id);
-                    else {
+                    else if (isMonitorKind(connection.kind)) {
+                      setReconnectId(connection.id);
+                      setMonitorKind(connection.kind);
+                    } else {
                       setReconnectId(connection.id);
                       setAppleOpen(true);
                     }
@@ -149,6 +171,18 @@ export function ProjectConnections({
                 >
                   Reconnect
                 </Button>
+                {connection.active &&
+                  ["stripe", "polar", "paddle", "revenuecat"].includes(
+                    connection.kind,
+                  ) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => setWebhookId(connection.id)}
+                    >
+                      Webhook
+                    </Button>
+                  )}
                 {connection.active && (
                   <Button
                     variant="ghost"
@@ -177,6 +211,27 @@ export function ProjectConnections({
           icon={<Cable />}
           title="Your first connection is one step away."
           description="Choose a provider above, then add a source to this project."
+        />
+      )}
+      {monitorKind && (
+        <MonitorConnectionDialog
+          key={`${monitorKind}:${reconnectId || "new"}`}
+          kind={monitorKind}
+          projectId={projectId}
+          connectionId={reconnectId}
+          open
+          onClose={() => setMonitorKind(undefined)}
+          onConnected={(id) => {
+            setMonitorKind(undefined);
+            if (!reconnectId) onConnected(id);
+          }}
+        />
+      )}
+      {webhookId && (
+        <WebhookDialog
+          id={webhookId}
+          open
+          onClose={() => setWebhookId(undefined)}
         />
       )}
       <AppleDialog

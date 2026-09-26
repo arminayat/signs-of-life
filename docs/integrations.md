@@ -75,3 +75,7 @@ The Node transport enforces connection/greeting/socket timeouts, disables file a
 Email destinations must explicitly confirm a verification link before they receive monitoring updates. Verification sends and test notifications are rate-limited. Unsubscribe disables the destination across projects. No tracking pixels are added.
 
 Anonymous account IDs are remembered without notifications, so a later observed conversion does not become a new-account alert. If an anonymous account is created and converted entirely between polls, polling alone cannot distinguish it from a new permanent account. Deduplication records around a stalled cursor are retained through prolonged outages; visible event history is limited to 30 days. Pending deliveries are retained until they reach a terminal outcome.
+
+## Implemented today — additional monitoring providers
+
+See [Monitoring integrations](monitoring-integrations.md) for all ten new providers, actual credential permissions, OAuth callbacks, billing webhooks, Better Auth installation, history limitations and separate live acceptance gates. Operator login remains independent.

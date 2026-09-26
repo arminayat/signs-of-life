@@ -8,11 +8,18 @@ export function overviewStore(
   db: Database,
 ): Pick<MonitorStore, "projectOverview"> {
   return {
-    async projectOverview(project) {
+    async projectOverview(project, range) {
       const now = new Date();
-      const today = localDay(now, project.timezone);
-      const dates = Array.from({ length: 30 }, (_, index) =>
-        new Date(Date.parse(`${today}T00:00:00Z`) - (29 - index) * 86400_000)
+      const today = range?.to || localDay(now, project.timezone);
+      const days = range
+        ? Math.round(
+            (Date.parse(range.to) - Date.parse(range.from)) / 86400_000,
+          ) + 1
+        : 30;
+      const dates = Array.from({ length: days }, (_, index) =>
+        new Date(
+          Date.parse(`${today}T00:00:00Z`) - (days - 1 - index) * 86400_000,
+        )
           .toISOString()
           .slice(0, 10),
       );
@@ -33,6 +40,7 @@ export function overviewStore(
                 fromZonedTime(`${dates[0]}T00:00:00`, project.timezone),
               ),
               lte(t.events.occurredAt, now),
+              lte(accountDate, today),
             ),
           )
           .groupBy(sql`account_date`)

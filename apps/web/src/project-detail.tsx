@@ -17,7 +17,7 @@ import { useDashboard } from "./data";
 import { EmptyState, ErrorNotice, Loading, Status } from "./ui";
 import { ProjectSources } from "./project-sources";
 import { ProjectNotifications } from "./project-notifications";
-import { ProjectOverview } from "./project-overview";
+import { ProjectOverview } from "./monitor-overview";
 const views = [
   { path: "overview", label: "Overview", icon: ChartNoAxesCombined },
   { path: "sources", label: "Sources", icon: Cable },

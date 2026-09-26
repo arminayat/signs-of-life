@@ -8,4 +8,8 @@ No route registration, scheduler or application monitoring-table persistence her
 
 ## Planned/aspirational
 
-Additional providers, Telegram groups and arbitrary database querying are not present. Authentication's current dependency boundary is tracked at workspace level.
+Telegram groups and arbitrary customer database querying are not present. Authentication's current dependency boundary is tracked at workspace level.
+
+## Implemented today — expanded monitoring
+
+monitoring/ implements Stripe, Polar, Paddle, RevenueCat, PostHog, GA4, Better Auth, WorkOS, Clerk and Auth0. Native reports are aggregate-only; no customer identity matching or profile persistence. RevenueCat has webhook events and native chart history, not a project-wide event replay feed.

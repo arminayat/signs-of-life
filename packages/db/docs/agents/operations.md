@@ -3,7 +3,7 @@
 ## Implemented today
 
 Run commands from repository root. pnpm db:migrate reads DATABASE_URL and invokes migrateDatabase; pnpm auth:migrate /private/path/mapping.json validates explicit identity mappings and clears Better Auth sessions. Scripts do not provision providers.
-Job claims use FOR UPDATE SKIP LOCKED, 5-minute leases and token-fenced finish. Due dispatch stamps expire after 2 minutes. cleanup removes expired challenges/limits; terminal history/receipts/jobs after 30 days; reports/metrics after 90 days, with event-cursor and pending-delivery exceptions.
+Job claims use FOR UPDATE SKIP LOCKED, 5-minute leases and token-fenced finish. Due dispatch stamps expire after 2 minutes. cleanup removes expired challenges/limits; terminal history/receipts/jobs after 30 days; reports/metrics and event identities after 365 days, with event-cursor/import and pending-delivery exceptions. Normalized event monetary details are cleared after 30 days; report query caches expire when their start date falls outside retention. Visible event/delivery feeds remain 30 days.
 Database-backed readiness is SELECT 1, not a migration-version or provider check.
 
 ## Planned/aspirational — operating rules

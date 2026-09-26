@@ -9,3 +9,7 @@ Connections/challenges are encrypted with record-specific authenticated context.
 ## Planned/aspirational — security rules
 
 Keep both application schemas private and use restricted runtime DB access. Never log credentials, raw reports, cookies, verification tokens or provider payloads. Preserve ownership checks before worker-only store calls. Do not describe database FKs alone as complete project authorization.
+
+## Implemented today — monitoring security
+
+Customer credentials are encrypted with connection-ID context. Setup fields are allowlisted; callers cannot inject provider match references. OAuth challenges bind user/workspace/project/provider and are consumed once. Refresh results compare the previous ciphertext and current lease against active connections; disconnect wins. Webhooks verify signatures/secret before parsing allowed fields into an atomic inbox. Only same-project authenticated exact Stripe object references can match RevenueCat observations; emails/amounts/timestamps never match. Better Auth URLs require HTTPS, operator-approved public DNS, bounded transport and no redirects; see adapter security notes.

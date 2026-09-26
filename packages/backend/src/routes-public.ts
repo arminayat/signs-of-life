@@ -1,3 +1,5 @@
+import { adapterFor } from "./monitoring-access";
+import { isMonitorKind, type Credentials } from "../../core/src/monitoring";
 import { Hono } from "hono";
 import { Webhook } from "svix";
 import { z } from "zod";
@@ -87,6 +89,36 @@ export function publicRoutes(services: Services) {
     }
     await store.receipt(`telegram:${update.update_id}`);
     return c.json({ ok: true });
+  });
+  app.post("/webhooks/monitor/:id", async (c) => {
+    const id = z.uuid().parse(c.req.param("id"));
+    const connection = await store.webhookConnection(id);
+    assert(
+      connection && isMonitorKind(connection.kind),
+      "webhook_not_found",
+      404,
+    );
+    assert(
+      await store.rateLimit(`webhook:${id}`, 600, 60),
+      "rate_limited",
+      429,
+    );
+    const credentials = await services.secrets.open<Credentials>(
+      connection.secret,
+      id,
+    );
+    const adapter = adapterFor(
+      services,
+      connection.kind as import("../../core/src/monitoring").MonitorKind,
+    );
+    assert(adapter.webhook, "webhook_not_supported", 404);
+    const observations = await adapter.webhook(
+      credentials,
+      await c.req.text(),
+      c.req.raw.headers,
+    );
+    await store.acceptMonitorWebhook(connection, observations);
+    return c.json({ accepted: true }, 202);
   });
   app.post("/webhooks/resend", async (c) => {
     assert(config.RESEND_WEBHOOK_SECRET, "resend_webhook_not_configured", 503);

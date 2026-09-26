@@ -9,3 +9,7 @@ No database connection, HTTP server, credential storage or scheduled executor ex
 ## Planned/aspirational
 
 No committed standalone SDK roadmap is present. Moving Authentication into this boundary is a candidate recorded at workspace level; it currently lives in adapters/src/auth.ts.
+
+## Implemented today — expanded monitoring
+
+monitoring.ts defines ten provider kinds, normalized events, candidates/verified references, native report results, independent import/live state and dashboard views. provider-registry.ts is safe browser metadata; monitor-store.ts extends the persistence contract. No native metric arithmetic lives here.

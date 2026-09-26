@@ -2,11 +2,11 @@
 
 ## Implemented today
 
-- src/schema.ts: application schema; src/auth-schema.ts: Better Auth schema.
+- src/schema.ts: application schema; src/auth-schema.ts: Better Auth schema; src/schema-monitoring.ts: normalized monitoring tables.
 - src/client.ts: connection lifecycle and executor types.
-- src/store.ts and src/store-*.ts: persistence implementation by responsibility.
+- src/store.ts and src/store-*.ts: persistence implementation by responsibility; store-sources.ts owns source creation/removal, and store-monitoring-series.ts owns independent daily aggregate retention.
 - src/migrations.ts and src/identity-migration.ts: upgrade functions.
-- migrations/: five SQL migrations 0000–0004; meta/ journal and schema snapshots.
+- migrations/: eleven SQL migrations 0000–0010; meta/ journal and schema snapshots.
 - AGENTS.md and docs/agents/: local memory.
   Seeds, customer-database migrations, local tests/ and generated client folders are not present. Root scripts/ wraps migration operations; root tests/ owns verification.
 

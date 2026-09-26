@@ -9,3 +9,7 @@ Cloudflare signs-of-life-api has no workers.dev route and uses Hyperdrive DATABA
 
 Run root pnpm check and git diff --check before release; relevant browser checks require explicit task authorization and isolated _test fixtures. Cloudflare runtime/config changes also need pnpm exec wrangler deploy --dry-run --config apps/api/wrangler.jsonc.
 Follow root docs/deployment.md: apply migrations before deployment, use correct Hyperdrive with caching disabled, install secrets outside vars, deploy API/jobs before web. API and web must agree on project-owned connection contracts. Do not deploy as part of KB maintenance.
+
+## Implemented today — monitoring rollout
+
+Both runtime configurations enable nodejs_compat and global_fetch_strictly_public. New OAuth client settings must be available to API and jobs for refresh; Better Auth hosts need MONITOR_ALLOWED_HOSTS. Apply additive migrations 0005–0010 before compatible API/jobs/web deployment. See root docs/monitoring-integrations.md for registration and live acceptance requirements.

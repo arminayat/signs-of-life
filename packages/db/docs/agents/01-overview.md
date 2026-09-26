@@ -7,4 +7,4 @@ Schemas are signs_of_life, signs_of_life_identity and the migration ledger signs
 
 ## Planned/aspirational
 
-No other SQL engine adapter or independent database service is present. Migration 0004's imported-project scheduling gap is recorded in 07-known-issues.md.
+No other SQL engine adapter or independent database service is present. Migration 0006 repairs imported-project scheduling; upgrade tests assert every project has a daily job.

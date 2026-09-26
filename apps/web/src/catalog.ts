@@ -4,6 +4,7 @@ export type CatalogItem = {
   id: string;
   name: string;
   organizationName?: string | null;
+  environment?: string;
 };
 export type Catalog = { items: CatalogItem[]; manualAppId?: boolean };
 

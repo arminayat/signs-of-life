@@ -16,3 +16,7 @@ Paths relative to packages/adapters; factories default to fetch unless a test HT
 | src/http.ts: Http, boundedText, jsonResponse                                      | Bounded body read and normalized HTTP error                                                   | Cancels response stream; no persistence                    |
 
 No CLI, public HTTP routes or schedules exist in this child.
+
+## Implemented today — expanded monitoring
+
+monitoring/index.ts monitorAdapter(kind,http,allowedHosts) returns a core ProviderAdapter. Each provider owns catalog/collection/report normalization; billing adapters verify webhooks. monitoring/oauth.ts owns registration-specific authorize/token/machine-token protocols. auth0-export.ts recovers dense timestamp search windows using minimal-field exports; public-http.ts validates connector DNS and pins Node HTTPS requests.

@@ -1,3 +1,6 @@
+import { isMonitorKind } from "../../../packages/core/src/monitoring";
+import { providerDefinition } from "../../../packages/core/src/provider-registry";
+import { MonitorSourceHealth } from "./monitor-status";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
@@ -65,9 +68,18 @@ export function ProjectSources({
                 <p className="muted text-xs">
                   {source.kind === "supabase"
                     ? "Supabase accounts"
-                    : "App Store downloads"}{" "}
+                    : isMonitorKind(source.kind)
+                      ? providerDefinition(source.kind).name
+                      : "App Store downloads"}{" "}
                   · {when(source.lastSuccessAt)}
                 </p>
+                {isMonitorKind(source.kind) && (
+                  <MonitorSourceHealth
+                    projectId={project.id}
+                    sourceId={source.id}
+                    lastError={source.lastError}
+                  />
+                )}
                 {source.lastError && (
                   <p className="text-xs text-red-600 mt-1">
                     {source.lastError.replaceAll("_", " ")}
@@ -105,7 +117,7 @@ export function ProjectSources({
         <EmptyState
           icon={<Cable />}
           title="Bring your first source."
-          description="Connect Supabase for account alerts or App Store Connect for daily download reports."
+          description="Connect an account, billing or analytics provider, then choose a resource to monitor."
           action={
             <Button
               isDisabled={!canAddSource}

@@ -1,0 +1,25 @@
+{
+  "name": "@signs-of-life/better-auth-connector",
+  "version": "0.1.0",
+  "description": "Read-only account creation monitoring for Better Auth",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\" && tsc -p tsconfig.json",
+    "prepack": "pnpm build"
+  },
+  "peerDependencies": {
+    "better-auth": "1.7.4",
+    "zod": "^4.0.0"
+  }
+}

@@ -1,3 +1,8 @@
+import { isMonitorKind } from "../../../packages/core/src/monitoring";
+import {
+  providers,
+  providerDefinition,
+} from "../../../packages/core/src/provider-registry";
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@heroui/react";
@@ -19,6 +24,11 @@ export function SourceDialog({
 }) {
   const connections = data.connections.filter(
     (connection) => connection.active && connection.projectId === projectId,
+  );
+  const [provider, setProvider] = useState(
+    connections.find((c) => c.id === initialConnectionId)?.kind ||
+      connections[0]?.kind ||
+      "supabase",
   );
   const [connectionId, setConnectionId] = useState(initialConnectionId),
     [externalId, setExternalId] = useState("");
@@ -51,17 +61,38 @@ export function SourceDialog({
   return (
     <Dialog
       title="Add a source"
-      description="Choose the app or database project you want to monitor."
+      description="Choose a provider, connection, and the resource you want to monitor."
       open={open}
       onClose={onClose}
     >
       {!connections.length ? (
         <Notice>
-          Connect Supabase or App Store Connect in this project’s Sources view
-          first.
+          Connect a provider in this project’s Sources view first.
         </Notice>
       ) : (
         <form className="form-stack" onSubmit={submit}>
+          <SelectField
+            name="provider"
+            label="Provider"
+            value={provider}
+            onChange={(v) => {
+              setProvider(v as typeof provider);
+              setConnectionId("");
+              setExternalId("");
+            }}
+          >
+            {[
+              { id: "supabase", name: "Supabase" },
+              { id: "apple", name: "App Store Connect" },
+              ...providers,
+            ]
+              .filter((p) => connections.some((c) => c.kind === p.id))
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </SelectField>
           <SelectField
             name="connectionId"
             label="Connection"
@@ -72,24 +103,32 @@ export function SourceDialog({
             }}
           >
             <option value="">Choose a connection</option>
-            {connections.map((connection) => (
-              <ConnectionOption
-                connection={connection}
-                open={open}
-                key={connection.id}
-              />
-            ))}
+            {connections
+              .filter((c) => c.kind === provider)
+              .map((connection) => (
+                <ConnectionOption
+                  connection={connection}
+                  open={open}
+                  key={connection.id}
+                />
+              ))}
           </SelectField>
           {catalog.isFetching && (
             <p className="muted text-sm" role="status">
-              Finding available apps and projects…
+              Finding accessible resources…
             </p>
           )}
           <ErrorNotice error={catalog.error} />
           {catalog.data?.items.length ? (
             <SelectField
               name="externalId"
-              label={connection?.kind === "apple" ? "App" : "Supabase project"}
+              label={
+                connection && isMonitorKind(connection.kind)
+                  ? providerDefinition(connection.kind).resource
+                  : connection?.kind === "apple"
+                    ? "App"
+                    : "Supabase project"
+              }
               value={externalId}
               onChange={setExternalId}
             >
@@ -97,6 +136,7 @@ export function SourceDialog({
               {catalog.data.items.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
+                  {item.environment ? ` · ${item.environment}` : ""}
                 </option>
               ))}
             </SelectField>
@@ -118,7 +158,7 @@ export function SourceDialog({
             </>
           ) : catalog.data ? (
             <Notice>
-              No accessible projects were found for this connection.
+              No accessible resources were found for this connection.
             </Notice>
           ) : null}
           {connection?.kind === "supabase" && (

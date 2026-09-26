@@ -14,3 +14,7 @@ Source: src/collectors.ts, runner.ts, services.ts and db stores.
 
 runOne claims through store, catches failures to stable codes, persists source/connection error, and reschedules recurring errors with bounded exponential backoff (up to one hour). A disconnected/missing connection terminates that job. Infrastructure Queue retries differ from application retries; normal runOne error handling returns after persisting failure.
 No separate DAG engine, workflow orchestrator, raw-report archive or exactly-once external transaction exists.
+
+## Implemented today — monitoring flow
+
+Credential/OAuth catalog probe → create source/state plus independent import/live jobs → lease-fenced page commits with fixed notification baseline → selected reports queued hourly → provider-native results/retained daily points → configurable Overview. Auth targets 60 seconds, billing reconciliation 5 minutes, aggregate sources 1 hour; queue/rate limits may delay. Billing webhook authenticity precedes durable normalized inbox + processing job. Historical pages are silent. Native unique-user totals use period provider calls; daily summaries use visible views and preserve Apple correction handling. Per-connection budgets and Retry-After defer requests, and separate history/live errors describe partial failures.

@@ -8,6 +8,7 @@ import type {
   Notification,
   SourceKind,
 } from "./model";
+import type { MonitoringStore } from "./monitor-store";
 export type Project = {
   id: string;
   workspaceId: string;
@@ -40,6 +41,7 @@ export type Source = {
   connectionId: string;
   kind: SourceKind;
   externalId: string;
+  environment: string;
   name: string;
   cursor: Cursor | null;
   baseline: Date;
@@ -127,13 +129,16 @@ export type ProjectOverview = {
     sourceCount: number;
   }[];
 };
-export interface MonitorStore {
+export interface MonitorStore extends MonitoringStore {
   health(): Promise<void>;
   resolveIdentity(
     identity: Identity,
   ): Promise<{ userId: string; workspaceId: string; name: string }>;
   snapshot(workspaceId: string, projectId?: string): Promise<Snapshot>;
-  projectOverview(project: Project): Promise<ProjectOverview>;
+  projectOverview(
+    project: Project,
+    range?: { from: string; to: string },
+  ): Promise<ProjectOverview>;
   createProject(
     workspaceId: string,
     input: Pick<Project, "name" | "description" | "timezone">,
@@ -179,7 +184,7 @@ export interface MonitorStore {
       | "kind"
       | "externalId"
       | "name"
-    >,
+    > & { environment?: string },
     limit: number,
   ): Promise<Source>;
   source(workspaceId: string, id: string): Promise<Source | undefined>;

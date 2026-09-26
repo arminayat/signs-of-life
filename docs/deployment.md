@@ -92,3 +92,7 @@ Deploy the API and web app together when introducing project Overview, Sources a
 Apply migration 0004 with `pnpm db:migrate` before deploying the API and web app together. No new secrets or provider permissions are needed. Connection creation now requires `projectId`; clients must create a project first. Existing single-project connections are assigned automatically, unattached connections receive a named project, and already-shared connections retain collection with a legacy warning. New source attachments must use a project-owned connection.
 
 Validation: type checking, 42 backend/database tests, production build, API/web Worker dry runs and `git diff --check` pass. Browser tests were updated but not run locally for this change.
+
+## Planned/aspirational — ten-provider rollout
+
+Apply additive migrations 0005–0010, configure optional OAuth registration pairs and MONITOR_ALLOWED_HOSTS on API and jobs, and deploy compatible API/jobs/web revisions together. Existing MAX_SOURCES overrides remain valid; the default is 25. Follow [the monitoring release procedure](monitoring-integrations.md#plannedaspirational--coordinated-release-and-live-acceptance). Browser tests were not authorized for this implementation; external registrations, deployment and real provider acceptance remain separate gates.

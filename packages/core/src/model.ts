@@ -1,4 +1,5 @@
-export type SourceKind = "supabase" | "apple";
+import type { MonitorKind } from "./monitoring";
+export type SourceKind = "supabase" | "apple" | MonitorKind;
 export type ChannelKind = "telegram" | "email";
 export type Notification = { title: string; text: string };
 export type Identity = {
@@ -21,6 +22,9 @@ export type DownloadMetric = {
   redownloads: number;
 };
 export type JobPayload =
+  | { kind: "monitor.collect"; sourceId: string; historical: boolean }
+  | { kind: "monitor.metric"; metricId: string }
+  | { kind: "monitor.webhook"; inboxId: string }
   | { kind: "supabase.collect"; sourceId: string }
   | { kind: "apple.collect"; connectionId: string }
   | { kind: "daily"; projectId: string }
