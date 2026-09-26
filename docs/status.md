@@ -71,22 +71,31 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 
 ## Ten-provider expansion — 2026-09-26
 
-### Implemented today — local source
+### Implemented today — source
 
 - Added Stripe, Polar, Paddle, RevenueCat, PostHog, GA4, Better Auth, WorkOS, Clerk and Auth0 monitoring, with credential/OAuth setup, actual resource discovery, independent import/live checkpoints and health, normalized billing webhooks, verified-reference deduplication and per-source event preferences. Existing operator authentication, Supabase and Apple remain supported.
 - Overview now has configurable Growth, Revenue and Usage views, native metrics/funnels/cohorts and retained date ranges. Missing/partial/unsupported values, provider reporting basis and currencies remain distinct. Native daily series retain twelve months independently of query caches; history imports are silent.
 - Added the distributable Better Auth server connector and its own agent KB; root routing now lists eight maintained children. Default source capacity is 25, with operator overrides preserved. Apple reconnect resumes collection; additive migrations 0005–0010 preserve records, repair missing daily jobs, separate environments and make notification claims atomic.
 
-### Automated verification — local only
+### Automated verification — isolated release and CI
 
 - `pnpm check` passed: TypeScript, **132 tests across 18 files**, connector build and web production build. Tests use isolated PostgreSQL databases and fixture providers, including fresh/legacy/repeated migrations, auth history beyond one page, webhook authentication, OAuth state/refresh races, private-URL protections, muted-first-source deduplication, expired-worker fencing, money precision and retained metric series.
 - API, jobs and web Cloudflare bundle dry runs passed with Wrangler 4.130.0. The connector build/pack was checked for its JS/types/README/license package contents. `git diff --check` and a 95-document agent-KB/local-link audit passed. No implementation module exceeds 500 lines.
 - Vite reports its existing advisory that the main JavaScript chunk is above 500 kB (approximately 552 kB, 171 kB gzip); route splitting is recorded in the web backlog.
-- Browser tests were **not run** for this feature, as required by the task's authorization boundary. Earlier browser/deployment records above do not validate this expansion.
+- No local or production browser testing was performed. The existing push-triggered GitHub Actions [run 36231903926](https://github.com/arminayat/signs-of-life/actions/runs/36231903926) passed its standard application checks, fixture browser suite, Worker bundle checks and Docker readiness/routing for release `41e421f`. A staged-source Gitleaks scan found no secrets.
 
-### Planned/aspirational — rollout and acceptance
+### Implemented today — production deployment verified 2026-09-26
 
-- No production migration/deployment, npm publication or new provider credential registration was performed for this expansion. The working tree still includes unrelated pre-existing changes.
-- Apply migrations **0005–0010**, configure the optional installation OAuth client pairs on API/jobs, configure `MONITOR_ALLOWED_HOSTS` for Better Auth, then deploy compatible API/jobs/web together. Customer keys, webhooks and connector installation are separate setup steps described in [Monitoring integrations](monitoring-integrations.md).
+- Pushed feature commit `41e421f898a0d46a69338fed5fb3cb605af2f510` to `main`; built and deployed from an isolated checkout that excludes unrelated local UI/development changes.
+- Backed up private application, identity and migration schemas plus restoration keys outside Git, then applied **0005–0010**. All eleven ledger hashes match the repository. Before/after counts preserved two projects, one source and one connection; the encrypted connection credential digest is unchanged. Every project has a daily job, and restricted-runtime-role project/overview/monitoring reads pass.
+- API version `8d40411a-9a0d-459a-bd8e-034750d475ee` and jobs version `492ce033-265b-42cf-b051-0ab2183ee4a1` serve `41e421f`. Jobs were deployed before API/web; the minute Cron and queue producer/consumer remain configured. Existing secrets and operator variables were retained with `--keep-vars`.
+- Hosted verification exposed an existing asset-routing gap: static pages bypassed the Worker's response headers. Follow-up commit `1d78050bf0a7a4efa3d72023157f276249097264` adds `public/_headers`; production build and web bundle dry run pass. Web version `906cf3cf-244d-41d6-9d50-37254ef167c2` deploys that fix at `https://sol.arminayat.dev`; API/jobs code is unchanged by the follow-up.
+- Health/readiness/config return HTTP 200 with `41e421f`. Hosted root, Overview, Sources and Notifications HTML plus JavaScript/CSS match the isolated release build; HTML now includes CSP, nosniff and referrer policy. The three new protected monitoring/metric read routes reject unauthenticated requests with HTTP 401. Login initiation returns a GitHub authorization URL and cookie; the real-account callback was not completed.
+- Existing source collection advanced from 09:10:36 to 09:16:33 UTC after deployment; daily jobs also advanced. The 09:17 UTC readback found no failed/error jobs, jobs overdue by five minutes, or source errors. Bounded connected API/jobs error tails observed no failed invocations; this is observation of the window, not a guarantee of future health.
+- Hosted config reports all ten credential-based integrations and the 25-source default. Optional new-provider OAuth registrations remain absent; Telegram/email channels remain disabled. Supabase monitoring and operator login remain enabled.
+
+### Planned/aspirational — provider setup and acceptance
+
+- Configure optional installation OAuth client pairs on API/jobs and `MONITOR_ALLOWED_HOSTS` for Better Auth. Customer keys, webhook registration, connector installation and notification-channel setup remain external steps in [Monitoring integrations](monitoring-integrations.md). No npm publication or new provider credential registration was performed.
 - **0/10 new providers are live-verified.** Each still needs a real isolated connection/catalog/read and relevant webhook/new-account/report acceptance; fixtures do not establish provider plan access or receipt at a notification destination.
 - RevenueCat's API has no project-wide historical billing-event feed: native charts provide history, while events require webhooks and missed event payloads cannot be reconstructed from aggregates. Other provider retention limits and incomplete deleted-user history remain explicit. No invented Stripe MRR/churn, email matching or aggregate grand total is included.

@@ -2,7 +2,7 @@
 
 ## Implemented today — source and setup
 
-Signs of Life includes adapters for Stripe, Polar, Paddle, RevenueCat, PostHog, Google Analytics 4, Better Auth, WorkOS, Clerk and Auth0 alongside Supabase and App Store Connect. This describes source implementation, not deployment or live acceptance. Signs of Life operator authentication is unchanged.
+Signs of Life includes adapters for Stripe, Polar, Paddle, RevenueCat, PostHog, Google Analytics 4, Better Auth, WorkOS, Clerk and Auth0 alongside Supabase and App Store Connect. This guide describes source behavior and required setup; [status.md](status.md) records the verified production rollout separately from provider acceptance. Signs of Life operator authentication is unchanged.
 
 Create a project, open Sources, choose a provider and connect its account. Then select an actual account, organization, project, property, app, environment or tenant as a source. Auth providers without application attribution monitor their environment/tenant. Connection validity, selected-resource errors, import progress and live collection are separate. Reconnect keeps the notification baseline and checkpoints; it does not replay historical alerts. Source limits default to 25 per workspace; existing MAX_SOURCES overrides still apply.
 
@@ -76,12 +76,14 @@ Signup and successful-payment alerts start enabled; renewals, refunds, cancellat
 
 Visible event/delivery history is 30 days. Apple aggregates and minimal observation identities support a 365-day window; unfinished imports/stalled cursors retain dedup identities longer. Normalized event amounts/currency are cleared after 30 days. Native report caches store range/filter results and are invalidated once their range starts outside retention; fresh in-range results are requested from the provider. Daily series points are also retained independently for 365 days. If a provider query fails, retained in-range points can be shown as partial/stale, without a synthesized period total or mixed reporting currencies. Data never previously collected cannot be recreated.
 
-## Planned/aspirational — coordinated release and live acceptance
+## Planned/aspirational — operator rollout and live acceptance procedure
 
 1. Back up private application/identity/migration schemas and encryption keys. Review/apply **0005_monitoring, 0006_monitor_webhooks, 0007_monitor_health, 0008_source_environments, 0009_retained_metric_series, 0010_monitor_notification_claim** with `pnpm db:migrate` using the migration role. Existing records are preserved; 0008 extends source uniqueness to include environment and carries forward existing monitoring state.
 2. Configure installation OAuth pairs and connector hostname allowlist; provider registrations and customer credentials are external prerequisites. Preserve MAX_SOURCES if intentionally overridden.
-3. Run `pnpm check`, connector build/pack, migration tests, `git diff --check` and all three Worker bundle dry runs. Browser verification requires explicit task authorization; it has not been run for this change.
+3. Run `pnpm check`, connector build/pack, migration tests, `git diff --check` and all three Worker bundle dry runs. Local/production browser verification requires explicit task authorization; the repository's existing CI fixture suite runs on push.
 4. Deploy compatible API, jobs and web revisions together, after migrations. Verify hosted revision/schema/readiness, then customer credential/resource access. Do not partially advertise a provider as live-verified from fixtures alone.
 5. For **each of all ten providers**, connect a real isolated account/environment, read its catalog and at least one supported report/event, verify pagination/coverage and observe collection progress. Billing providers additionally need an authentic webhook and API reconciliation read; auth providers need a real newly created account; native metrics require actual plan/scopes. Confirm historical imports send no alerts and test a live destination separately.
 
-No provider in this expansion has completed a real connection/read acceptance test in this implementation session. No production migration, credential registration, deployment, npm publication or inbox receipt is implied by automated tests.
+Implemented today — production rollout: migrations 0005–0010 and compatible API/jobs/web are deployed; hosted revision/schema/readiness, asset bytes, route guards and existing collection progress were checked on 2026-09-26. See [status.md](status.md) for exact commits and Worker versions. New-provider OAuth registrations, customer credentials, Better Auth hostname allowlisting and notification-channel setup remain external prerequisites.
+
+Planned/aspirational — provider acceptance: **0/10** new providers have completed a real connection/read test. No npm publication or inbox receipt is implied by this deployment or automated verification.
