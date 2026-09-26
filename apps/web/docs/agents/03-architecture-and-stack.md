@@ -6,3 +6,5 @@ Root pins React/ReactDOM 19.3.0, Vite 8.3.0, HeroUI 3.2.4, Tailwind 4.3.3, React
 index.html loads src/main.tsx; StrictMode wraps QueryClientProvider and BrowserRouter. src/data.ts imports core types and maps server Dates to JSON strings; project-overview imports core time helper. No runtime backend/DB import enters browser code.
 Vite root is apps/web, dev port 5173 strict loopback, file watching polls every 300ms, /api proxy to 8787, output dist with sourcemaps. Config comes from /api/config; no application VITE_* variable is read. Theme is the only explicit localStorage state (key theme); forms use component state.
 Root pnpm build builds this app. Playwright config uses isolated 5217/8797 fixture servers and desktop/mobile Chromium with actual API/test DB and fake providers. CI also bundles the Cloudflare asset/API forwarding Worker.
+
+Cloudflare serves matching static assets before the Worker; only /api/* uses run_worker_first. Vite copies public/_headers into dist so asset responses receive the CSP, nosniff and referrer policy; src/cloudflare.ts applies the same policy when its asset fallback runs. API response headers remain backend-owned.

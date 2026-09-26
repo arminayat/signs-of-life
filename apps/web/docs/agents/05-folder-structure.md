@@ -12,7 +12,8 @@
 - src/styles.css, responsive.css, project.css, content-frame.css: tokens/base, responsive/login, project, header/footer styling.
 - src/cloudflare.ts, wrangler.jsonc, worker-configuration.d.ts: asset/API forwarding deployment.
 - index.html, vite.config.ts, package.json: boot/build/package metadata.
-  Local components/, pages/, hooks/, api/, public/ asset tree and local tests/ are not present. dist/ is generated output, not source.
+- public/favicon.svg and public/_headers: static icon and Cloudflare asset response headers, copied by Vite into dist/.
+  Local components/, pages/, hooks/, api/ and local tests/ are not present. dist/ is generated output, not source.
 
 ## Planned/aspirational — placement rules
 
