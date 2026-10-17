@@ -8,6 +8,8 @@
 - **Handled schema/deployment rename risk:** changing ledger/resource/Compose names can create empty resources or replay migrations → implemented DB fix renames old ledger first and migration 0003 renames schemas; operator cutover still needs root docs/renaming.md → prevention: preserve applied SQL, DB volumes, secrets and encryption versions.
 - **Resolved scheduling gaps:** migration 0006 repairs missing project daily jobs, and Apple reconnect requeues collection without resetting source history. Keep upgrade and reconnect regression tests; source implementation does not imply production migration/deployment.
 
+- **Verified Wrangler authentication workaround:** macOS Keychain exit 51 prevented both reading the existing profile and saving a fresh OAuth key. A separately authorized named profile stored in an owner-only plaintext file successfully deployed all three Workers. Keep the global Keychain setting unchanged; select the named profile and set `CLOUDFLARE_AUTH_USE_KEYRING=false` for each command using that profile. A normal command without this override may still hit the Keychain failure. Plaintext storage requires operator consent; this workaround does not repair the macOS Keychain itself.
+
 ## Planned/aspirational — log maintenance
 
 Each new entry needs symptom → root cause → actual fix/workaround (or explicitly none) → prevention and status. Do not label an untested proposal resolved; prune obsolete entries.

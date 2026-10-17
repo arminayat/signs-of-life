@@ -11,11 +11,18 @@ This document distinguishes implemented behavior, automated verification and liv
 - Slack and Discord destinations encrypt webhook URLs, verify channel access with an expiring code, and support project routing and test messages. Pending destinations cannot be selected for routing. Ambiguous sends remain uncertain. Google Play country filters can be entered and are visible in saved view labels.
 - Additive migration **0011_webhook_destinations** adds a nullable encrypted destination secret. No new environment variables or runtime bindings are required. Apply `pnpm db:migrate`, then restart/deploy compatible API, jobs and web builds; customer credentials and channel webhook URLs are configured through the dashboard. See [setup](monitoring-integrations.md) and [channel setup](integrations.md#slack-and-discord).
 
-### Automated verification — local only
+### Automated verification — local and CI
 
 - `pnpm check` passes: TypeScript, **232 tests across 25 files**, connector build and web production build. PostgreSQL tests ran against a temporary isolated PostgreSQL 18 database ending in `_test`, with fixture providers. Coverage includes fresh/legacy/repeated migrations, Google token/report handling, Lemon payment/refund transitions, duplicate delivery prevention, channel URL validation, encrypted snapshots and channel verification (including Discord Markdown-safe codes).
 - API, jobs and web Cloudflare bundle dry runs pass. A real local workerd transport regression verifies successful requests and rejected redirects; provider/channel requests use manual redirect handling because Workers rejects redirect:error. The existing Vite main-chunk size advisory remains; route splitting is tracked in the web backlog.
-- No browser testing, push/CI run, deployment or live provider acceptance was performed for this change. Real Google reports, Lemon billing events and observed Slack/Discord messages remain separate acceptance steps. Earlier sections below are historical evidence for their stated revisions.
+- Release commit `93f647b4dddf2a7b5f17bc97282436a39940d3b5` was pushed to main. [GitHub Actions run 39058143751](https://github.com/arminayat/signs-of-life/actions/runs/39058143751) passed check and container jobs, including its existing isolated browser suite. No local or production application browser testing was performed.
+
+### Deployed and verified — 2026-10-17
+
+- A private PostgreSQL backup and restoration keys were saved before applying `0011_webhook_destinations` through the repository migration runner. All 12 migration hashes match source; project/source/connection/destination counts and encrypted connection credential digest were preserved. The nullable text column and runtime SELECT/INSERT/UPDATE grants were verified.
+- API, jobs and web were deployed from the isolated release commit, preserving hosted variables. Worker versions: API `633fd311-c405-46a2-aca4-e77a14d024de`, jobs `1f30b726-1803-403f-b77b-41547f4703fd`, web `e0b24cb5-2f53-496b-8ee2-1554b5a6ef5b`.
+- Hosted health/readiness return HTTP 200 with the release revision. Config enables Google Play, Lemon Squeezy, Slack and Discord. Root/deep-link HTML and referenced JS/CSS match the release build byte-for-byte; unauthenticated projects/destinations return 401. Post-deploy database inspection found no source errors or failed jobs; six jobs were pending.
+- Real Google reports, Lemon billing events and observed Slack/Discord messages remain separate acceptance steps. No real provider or recipient acceptance is claimed. Earlier sections below are historical evidence for their stated revisions.
 
 ## Implemented
 
