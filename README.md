@@ -5,11 +5,12 @@
 Upgrading an existing installation? Follow the [rename guide](docs/renaming.md)
 to preserve your database and deployment resources.
 
-Open-source account alerts and download reports for people building more than one thing. Organize products into projects, connect their data sources, and receive updates through Telegram or email.
+Open-source account alerts and download reports for people building more than one thing. Organize products into projects, connect their data sources, and receive updates through Telegram, email, Slack or Discord.
 
 - **Supabase:** OAuth connection and read-only account polling, approximately once a minute. No hooks, database changes, or monitored user email collection.
 - **App Store Connect:** initial downloads and redownloads from Sales and Trends, with pending-report handling and corrections.
-- **Telegram and email:** verified destinations, per-project routing, test messages, pause controls and independent delivery history.
+- **Google Play Console:** device installs, uninstalls and country-specific ratings from read-only bulk reports; delayed reports stay pending.
+- **Telegram, email, Slack and Discord:** verified destinations, per-project routing, test messages, pause controls and independent delivery history.
 - **Portable:** React/Vite + HeroUI/Tailwind, Hono, Drizzle/PostgreSQL, Better Auth or Supabase Auth. Cloudflare and Docker runtimes share application logic.
 
 ## Run locally
@@ -70,4 +71,4 @@ All application code is available under **AGPL-3.0-only**. See [LICENSE](LICENSE
 
 ## Implemented today — monitoring expansion
 
-Ten additional provider adapters, configurable Growth/Revenue/Usage reports and a read-only Better Auth connector are included in source. Follow [setup and coverage documentation](docs/monitoring-integrations.md) before release: migrations 0005–0010, provider credentials/registrations, coordinated API/jobs/web deployment and individual live acceptance are required.
+Twelve additional provider adapters, including Lemon Squeezy billing, configurable Growth/Revenue/Usage reports and a read-only Better Auth connector are included in source. Follow [setup and coverage documentation](docs/monitoring-integrations.md) before release: migrations through 0011, provider credentials/registrations, coordinated API/jobs/web deployment and individual live acceptance are required. Slack and Discord setup is in [Integration setup](docs/integrations.md#slack-and-discord).

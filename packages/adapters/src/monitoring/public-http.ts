@@ -66,7 +66,7 @@ export function publicConnectorHttp(
     if (runtime === "cloudflare")
       return http(target, {
         ...init,
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(remaining),
       });
     // Pin the already-validated address on Node. TLS still verifies the original

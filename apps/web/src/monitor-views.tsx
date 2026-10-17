@@ -39,6 +39,13 @@ export function ViewEditor({
     [next[index], next[index + offset]] = [next[index + offset], next[index]];
     setViews(next);
   }
+  function setFilter(id: string, value: string) {
+    setFilters(
+      Object.fromEntries(
+        Object.entries({ ...filters, [id]: value }).filter(([, v]) => v),
+      ),
+    );
+  }
   return (
     <Dialog
       title="Dashboard views"
@@ -80,31 +87,36 @@ export function ViewEditor({
           ))}
         </SelectField>
         {selected && <p className="muted text-xs">{selected.definition}</p>}
-        {selected?.filters?.map((filter) => (
-          <SelectField
-            key={filter.id}
-            name={filter.id}
-            label={filter.label}
-            required={false}
-            value={filters[filter.id] || ""}
-            onChange={(value) =>
-              setFilters(
-                Object.fromEntries(
-                  Object.entries({ ...filters, [filter.id]: value }).filter(
-                    ([, v]) => v,
-                  ),
-                ),
-              )
-            }
-          >
-            <option value="">All</option>
-            {filter.values?.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </SelectField>
-        ))}
+        {selected?.filters?.map((filter) =>
+          filter.values ? (
+            <SelectField
+              key={filter.id}
+              name={filter.id}
+              label={filter.label}
+              required={false}
+              value={filters[filter.id] || ""}
+              onChange={(value) => setFilter(filter.id, value)}
+            >
+              <option value="">All</option>
+              {filter.values?.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </SelectField>
+          ) : (
+            <label className="grid gap-2 text-sm" key={filter.id}>
+              {filter.label}
+              <input
+                className="native-select"
+                name={filter.id}
+                value={filters[filter.id] || ""}
+                maxLength={120}
+                onChange={(event) => setFilter(filter.id, event.target.value)}
+              />
+            </label>
+          ),
+        )}
         <Button
           variant="secondary"
           isDisabled={!selected || views.length >= 50}
@@ -145,6 +157,12 @@ export function ViewEditor({
                 <Checkbox.Content>
                   {sources.find((s) => s.id === view.sourceId)?.name} ·{" "}
                   {view.metric}
+                  {Object.entries(view.filters || {}).map(([key, value]) => (
+                    <span key={key}>
+                      {" "}
+                      · {key}: {value}
+                    </span>
+                  ))}
                 </Checkbox.Content>
               </Checkbox>
               <div className="flex gap-1">

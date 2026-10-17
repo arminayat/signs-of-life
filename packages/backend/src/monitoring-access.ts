@@ -57,7 +57,7 @@ export async function monitoringCredentials(
   const needsToken =
     c.authMethod === "oauth" ||
     kind === "auth0" ||
-    (kind === "ga4" && !!c.serviceAccount);
+    (["ga4", "google-play"].includes(kind) && !!c.serviceAccount);
   const lease = new Date(Date.now() + 60_000);
   if (
     !needsToken ||

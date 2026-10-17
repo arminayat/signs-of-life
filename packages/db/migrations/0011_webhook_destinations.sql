@@ -1,0 +1,1 @@
+ALTER TABLE "signs_of_life"."destinations" ADD COLUMN "secret" text;

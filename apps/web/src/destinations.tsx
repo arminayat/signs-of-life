@@ -1,7 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button, Card } from "@heroui/react";
-import { Mail, Plus, Send, ArrowUpRight, Check } from "lucide-react";
+import {
+  Mail,
+  MessageSquare,
+  Plus,
+  Send,
+  ArrowUpRight,
+  Check,
+} from "lucide-react";
+import type { ChannelKind } from "../../../packages/core/src/model";
+import { DestinationVerification } from "./destination-verification";
 import { useAction, useConfig, useDashboard } from "./data";
 import {
   Dialog,
@@ -62,6 +71,9 @@ export function DestinationsPage() {
                 <span className="integration-logo">
                   {destination.kind === "email" ? (
                     <Mail size={23} />
+                  ) : destination.kind === "slack" ||
+                    destination.kind === "discord" ? (
+                    <MessageSquare size={23} />
                   ) : (
                     <Send size={23} />
                   )}
@@ -81,7 +93,9 @@ export function DestinationsPage() {
                 <p className="muted text-xs mt-1">
                   {destination.kind === "email"
                     ? destination.address
-                    : "Private Telegram chat"}
+                    : destination.kind === "telegram"
+                      ? "Private Telegram chat"
+                      : destination.address}
                 </p>
               </div>
               <p className="muted text-xs">
@@ -138,6 +152,10 @@ export function DestinationsPage() {
                         {
                           onSuccess: (result) => {
                             if (result.url) setTelegramUrl(String(result.url));
+                            else if (result.codeRequired)
+                              setMessage(
+                                "A verification code has been queued for your channel. Check Activity for delivery status.",
+                              );
                             else
                               setMessage(
                                 "A new verification email has been queued.",
@@ -149,7 +167,9 @@ export function DestinationsPage() {
                   >
                     {destination.kind === "telegram"
                       ? "Connect Telegram"
-                      : "Resend verification"}
+                      : destination.kind === "email"
+                        ? "Resend verification"
+                        : "Resend code"}
                   </Button>
                 )}
                 <Button
@@ -170,6 +190,18 @@ export function DestinationsPage() {
                   Remove
                 </Button>
               </div>
+              {!destination.verified &&
+                (destination.kind === "slack" ||
+                  destination.kind === "discord") && (
+                  <DestinationVerification
+                    id={destination.id}
+                    onVerified={() =>
+                      setMessage(
+                        "Channel verified. Select it in your project’s notification preferences.",
+                      )
+                    }
+                  />
+                )}
             </Card>
           ))}
         </div>
@@ -177,7 +209,7 @@ export function DestinationsPage() {
         <EmptyState
           icon={<Send size={25} />}
           title="A good update deserves a good home."
-          description="Add your Telegram chat or email address. Then select it in your project’s notification preferences."
+          description="Add Telegram, email, Slack or Discord. Then select it in your project’s notification preferences."
           action={
             <Button onPress={() => setOpen(true)}>
               Add your first destination
@@ -208,7 +240,7 @@ function DestinationDialog({
 }) {
   const action = useAction(),
     config = useConfig();
-  const [kind, setKind] = useState("telegram"),
+  const [kind, setKind] = useState<ChannelKind>("telegram"),
     [result, setResult] = useState<Record<string, unknown>>();
   function close() {
     setResult(undefined);
@@ -225,6 +257,7 @@ function DestinationDialog({
           name: fields.get("name"),
           kind,
           address: fields.get("address") ?? undefined,
+          webhookUrl: fields.get("webhookUrl") ?? undefined,
         },
       },
       { onSuccess: setResult },
@@ -242,7 +275,9 @@ function DestinationDialog({
           <Notice>
             {result.url
               ? "Open your private chat with the bot and press Start. This connection link expires in 10 minutes."
-              : "Check your inbox and confirm your email address. The verification link expires in 24 hours."}
+              : result.codeRequired
+                ? "A verification code has been queued for your channel. Enter it below to enable notifications. Check Activity if it has not arrived."
+                : "Check your inbox and confirm your email address. The verification link expires in 24 hours."}
           </Notice>
           {!!result.url && (
             <a
@@ -255,25 +290,39 @@ function DestinationDialog({
               <ArrowUpRight size={15} />
             </a>
           )}
+          {!!result.codeRequired && (
+            <DestinationVerification
+              id={String(result.id)}
+              onVerified={close}
+            />
+          )}
           <Button variant="secondary" onPress={close}>
             Done
           </Button>
         </div>
       ) : (
-        <form className="form-stack" onSubmit={submit}>
+        <form className="form-stack" onSubmit={submit} autoComplete="off">
           <SelectField
             name="kind"
             label="Channel"
             value={kind}
-            onChange={setKind}
+            onChange={(value) => setKind(value as ChannelKind)}
           >
             <option value="telegram">Telegram</option>
             <option value="email">Email</option>
+            <option value="slack">Slack</option>
+            <option value="discord">Discord</option>
           </SelectField>
           <Field
             name="name"
             label="Destination name"
-            placeholder={kind === "telegram" ? "My Telegram" : "My inbox"}
+            placeholder={
+              kind === "telegram"
+                ? "My Telegram"
+                : kind === "email"
+                  ? "My inbox"
+                  : "Product updates"
+            }
             required
           />
           {kind === "email" && (
@@ -285,13 +334,51 @@ function DestinationDialog({
               required
             />
           )}
-          {config.data &&
-            !config.data.channels[kind as "email" | "telegram"] && (
+          {(kind === "slack" || kind === "discord") && (
+            <>
               <Notice>
-                This channel is waiting for operator setup. It will be available
-                once the installation is configured.
+                {kind === "slack" ? (
+                  <>
+                    Create a Slack app, enable{" "}
+                    <a
+                      className="underline"
+                      href="https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      incoming webhooks
+                    </a>
+                    , and choose the channel.
+                  </>
+                ) : (
+                  <>
+                    In your Discord text channel, open Edit Channel →
+                    Integrations → Webhooks and copy its webhook URL. Forum and
+                    media channels are not supported.
+                  </>
+                )}{" "}
+                We will send a verification code there. Your webhook URL is
+                stored encrypted.
               </Notice>
-            )}
+              <Field
+                name="webhookUrl"
+                label="Webhook URL"
+                type="password"
+                required
+                placeholder={
+                  kind === "slack"
+                    ? "https://hooks.slack.com/services/…"
+                    : "https://discord.com/api/webhooks/…"
+                }
+              />
+            </>
+          )}
+          {config.data && !config.data.channels[kind] && (
+            <Notice>
+              This channel is waiting for operator setup. It will be available
+              once the installation is configured.
+            </Notice>
+          )}
           <ErrorNotice error={action.error} />
           <div className="form-actions">
             <Button variant="secondary" onPress={close}>
@@ -300,9 +387,13 @@ function DestinationDialog({
             <Button
               type="submit"
               isPending={action.isPending}
-              isDisabled={!config.data?.channels[kind as "email" | "telegram"]}
+              isDisabled={!config.data?.channels[kind]}
             >
-              {kind === "telegram" ? "Connect Telegram" : "Send verification"}
+              {kind === "telegram"
+                ? "Connect Telegram"
+                : kind === "email"
+                  ? "Send verification"
+                  : "Send verification code"}
             </Button>
           </div>
         </form>

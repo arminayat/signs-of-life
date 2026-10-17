@@ -26,3 +26,5 @@ Follow root docs/deployment.md and integrations.md for provider setup, backups a
 ## Implemented today — monitoring configuration
 
 STRIPE/POLAR/POSTHOG/GA4_OAUTH_CLIENT_ID and matching _SECRET pairs enable provider OAuth; both API and jobs need them for token refresh. Stripe uses the app developer secret API key as its installation secret. MONITOR_ALLOWED_HOSTS is an operator-controlled exact hostname allowlist for customer Better Auth connectors. RUNTIME selects Node pinned HTTPS versus Workers public transport. Root docs/monitoring-integrations.md owns setup/rollout details.
+
+Google Play, Lemon Squeezy, Slack and Discord need no new operator environment variables. Apply migration 0011 before API/jobs/web rollout; connection keys and destination webhook URLs are encrypted in PostgreSQL using the existing key map. This source implementation is not live provider acceptance.

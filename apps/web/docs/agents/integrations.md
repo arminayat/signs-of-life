@@ -8,4 +8,6 @@ Cloudflare src/cloudflare.ts forwards /api/* to API service binding and serves o
 
 ## Implemented today — expanded monitoring
 
-All ten providers use backend credential/OAuth endpoints and the provider → connection → resource sequence. The browser never calls provider APIs directly. Secrets are transient form values posted to the API, never localStorage. Native reports stay source-specific, with definition, reporting zone, freshness, unit/currency and unavailable/partial states. No analytics instrumentation or formula/SQL editor exists.
+All twelve monitoring providers use backend credential/OAuth endpoints and the provider → connection → resource sequence. The browser never calls provider APIs directly. Secrets are transient form values posted to the API, never localStorage. Native reports stay source-specific, with definition, reporting zone, freshness, unit/currency and unavailable/partial states. No analytics instrumentation or formula/SQL editor exists.
+
+Google Play setup posts service-account JSON and a reporting bucket; Lemon Squeezy posts an API key, environment and optional signing secret. Slack/Discord URLs are transient form values sent to /destinations, never returned by snapshots. Operators confirm a code received in the selected channel; browser code never calls Slack or Discord. Google Play rating views need an uppercase country filter.

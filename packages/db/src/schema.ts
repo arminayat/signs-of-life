@@ -144,6 +144,7 @@ export const destinations = appSchema.table(
     kind: text("kind").$type<ChannelKind>().notNull(),
     name: text("name").notNull(),
     address: text("address").notNull().default(""),
+    secret: text("secret"),
     verified: boolean("verified").notNull().default(false),
     enabled: boolean("enabled").notNull().default(true),
     unsubscribeHash: text("unsubscribe_hash").notNull(),

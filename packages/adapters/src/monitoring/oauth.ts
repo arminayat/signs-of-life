@@ -1,5 +1,5 @@
 import { SignJWT, importPKCS8 } from "jose";
-import { assert } from "../../../core/src/model";
+import { AppError, assert } from "../../../core/src/model";
 import type { Credentials, MonitorKind } from "../../../core/src/monitoring";
 import type { Http } from "../http";
 import { auth0Host, object, posthogHost, request, string } from "./http";
@@ -151,23 +151,42 @@ export async function machineToken(
       expiresAt: expiry(result.expires_in),
     };
   }
-  if (kind === "ga4" && c.serviceAccount) {
-    const account = object(JSON.parse(c.serviceAccount));
+  if ((kind === "ga4" || kind === "google-play") && c.serviceAccount) {
+    let account: Record<string, unknown>;
+    try {
+      account = object(JSON.parse(c.serviceAccount));
+    } catch {
+      throw new AppError("invalid_service_account");
+    }
     assert(account.type === "service_account", "invalid_service_account");
     assert(
       typeof account.private_key === "string" &&
         account.private_key.length <= 16_000,
       "invalid_service_account",
     );
+    assert(
+      typeof account.client_email === "string" &&
+        account.client_email.length < 2000,
+      "invalid_service_account",
+    );
+    let key: CryptoKey;
+    try {
+      key = await importPKCS8(account.private_key, "RS256");
+    } catch {
+      throw new AppError("invalid_service_account");
+    }
     const assertion = await new SignJWT({
-      scope: "https://www.googleapis.com/auth/analytics.readonly",
+      scope:
+        kind === "google-play"
+          ? "https://www.googleapis.com/auth/devstorage.read_only"
+          : "https://www.googleapis.com/auth/analytics.readonly",
     })
       .setProtectedHeader({ alg: "RS256" })
       .setIssuer(string(account.client_email))
       .setAudience("https://oauth2.googleapis.com/token")
       .setIssuedAt()
       .setExpirationTime("1h")
-      .sign(await importPKCS8(account.private_key, "RS256"));
+      .sign(key);
     const result = object(
       await request(http, "https://oauth2.googleapis.com/token", {
         method: "POST",

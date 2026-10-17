@@ -11,6 +11,7 @@ import {
   resendTransport,
 } from "../../adapters/src/channels";
 import type { Config } from "./config";
+import { webhookChannel } from "../../adapters/src/webhook-channels";
 import type { Services } from "./services";
 export function compose(config: Config, email?: EmailTransport) {
   const { db, close } = database(config.DATABASE_URL);
@@ -28,6 +29,8 @@ export function compose(config: Config, email?: EmailTransport) {
     accounts: supabaseSource(),
     reports: appleSource(),
     channels: {
+      slack: webhookChannel("slack"),
+      discord: webhookChannel("discord"),
       ...(config.TELEGRAM_BOT_TOKEN
         ? { telegram: telegramChannel(config.TELEGRAM_BOT_TOKEN) }
         : {}),

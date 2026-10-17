@@ -12,4 +12,4 @@ No committed standalone SDK roadmap is present. Moving Authentication into this 
 
 ## Implemented today — expanded monitoring
 
-monitoring.ts defines ten provider kinds, normalized events, candidates/verified references, native report results, independent import/live state and dashboard views. provider-registry.ts is safe browser metadata; monitor-store.ts extends the persistence contract. No native metric arithmetic lives here.
+monitoring.ts defines twelve provider kinds, normalized events, candidates/verified references, native report results, independent import/live state and dashboard views. provider-registry.ts is safe browser metadata; monitor-store.ts extends the persistence contract. No native metric arithmetic lives here.

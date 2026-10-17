@@ -2,13 +2,28 @@
 
 This document distinguishes implemented behavior, automated verification and live acceptance. Update it before release.
 
+## Four additional integrations — 2026-10-17
+
+### Implemented today — local source
+
+- Google Play Console discovers apps from private reporting buckets and provides install, uninstall and country-specific rating reports. Reports retain provider dates, missing/partial states and publication delay; no individual install alerts are inferred.
+- Lemon Squeezy discovers stores and reconciles orders/subscription invoices, with authenticated billing webhooks and environment isolation. Initial purchases and refunds share stable identities; signed invoice recovery can advance a silently imported event and notify once. Partial refunds count a refunded payment without inventing amounts. No customer profiles or raw payloads are retained.
+- Slack and Discord destinations encrypt webhook URLs, verify channel access with an expiring code, and support project routing and test messages. Pending destinations cannot be selected for routing. Ambiguous sends remain uncertain. Google Play country filters can be entered and are visible in saved view labels.
+- Additive migration **0011_webhook_destinations** adds a nullable encrypted destination secret. No new environment variables or runtime bindings are required. Apply `pnpm db:migrate`, then restart/deploy compatible API, jobs and web builds; customer credentials and channel webhook URLs are configured through the dashboard. See [setup](monitoring-integrations.md) and [channel setup](integrations.md#slack-and-discord).
+
+### Automated verification — local only
+
+- `pnpm check` passes: TypeScript, **232 tests across 25 files**, connector build and web production build. PostgreSQL tests ran against a temporary isolated PostgreSQL 18 database ending in `_test`, with fixture providers. Coverage includes fresh/legacy/repeated migrations, Google token/report handling, Lemon payment/refund transitions, duplicate delivery prevention, channel URL validation, encrypted snapshots and channel verification (including Discord Markdown-safe codes).
+- API, jobs and web Cloudflare bundle dry runs pass. A real local workerd transport regression verifies successful requests and rejected redirects; provider/channel requests use manual redirect handling because Workers rejects redirect:error. The existing Vite main-chunk size advisory remains; route splitting is tracked in the web backlog.
+- No browser testing, push/CI run, deployment or live provider acceptance was performed for this change. Real Google reports, Lemon billing events and observed Slack/Discord messages remain separate acceptance steps. Earlier sections below are historical evidence for their stated revisions.
+
 ## Implemented
 
 - React/Vite dashboard with HeroUI, Tailwind, light/dark themes and responsive layouts.
 - Hono API, Drizzle PostgreSQL schema/migrations, tenant-scoped repositories and credential encryption.
 - Better Auth default and Supabase Auth alternative; explicit identity migration and versioned session cookies.
 - Read-only Supabase OAuth account source and Apple Sales and Trends reporting source.
-- Telegram and email destinations, verification, routing, tests, unsubscribe and delivery history.
+- Telegram, email, Slack and Discord destinations, verification, routing, tests and delivery history; email unsubscribe.
 - Cloudflare API/static/job entrypoints, durable database jobs, Queues dispatch and Node job runner.
 - Docker Compose, configuration examples, CI and operator documentation.
 

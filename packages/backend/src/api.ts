@@ -90,6 +90,8 @@ export function createApi(services: ApiServices) {
       channels: {
         telegram: !!services.channels.telegram,
         email: !!services.channels.email,
+        slack: !!services.channels.slack,
+        discord: !!services.channels.discord,
       },
       limits: {
         projects: services.config.MAX_PROJECTS,

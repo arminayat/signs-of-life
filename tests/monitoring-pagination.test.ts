@@ -183,6 +183,6 @@ it("streams paginated Auth0 exports without forwarding tenant credentials or ret
   for (const [target, init] of http.mock.calls)
     if (String(target).includes("amazonaws.com")) {
       expect(init?.headers).toBeUndefined();
-      expect(init?.redirect).toBe("error");
+      expect(init?.redirect).toBe("manual");
     }
 });

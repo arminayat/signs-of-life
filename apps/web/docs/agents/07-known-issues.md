@@ -9,3 +9,5 @@
 
 - **Resolved:** newly added sources appeared collected at their baseline → initial live cursor equaled notification start → show waiting for the first collection until the live checkpoint advances.
 - **Resolved and hosted-verified: static asset security headers absent.** Hosted HTML bypassed src/cloudflare.ts because run_worker_first routes only /api/* through the Worker → public/_headers supplies the same CSP, nosniff and referrer policy at the asset layer → verify hosted HTML/deep links after deployment, since a successful Worker bundle alone does not exercise asset routing. Keep this policy aligned with the fallback response headers in src/cloudflare.ts.
+
+- **Resolved:** metric filters without enumerated values rendered an All-only selector, making Google Play country ratings unusable → ViewEditor renders a bounded text input for free-form filters and preserves selectors for enumerated filters. Typecheck/build verify composition; browser verification remains task-authorized only.

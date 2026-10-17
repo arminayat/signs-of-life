@@ -58,6 +58,19 @@ In Signs of Life, create a Telegram destination, open its expiring link, and pre
 
 Telegram has no send idempotency key. Timeouts and interrupted sends are marked uncertain instead of retried blindly.
 
+## Slack and Discord
+
+Implemented today in source; live provider acceptance is a separate release check. Apply migration 0011 before running the new API/jobs. No new environment variables or installation-wide bot credentials are required.
+
+1. For Slack, create an app with Incoming Webhooks enabled and authorize it for the destination channel. Copy its `https://hooks.slack.com/services/...` URL. For Discord, create a webhook for a regular text channel under Server Settings → Integrations and copy its `https://discord.com/api/webhooks/...` URL. GovSlack and Discord forum/media threads are not supported.
+2. Open Destinations, choose Slack or Discord, name the destination, and paste its webhook URL. The server encrypts the URL; it never appears in dashboard responses or delivery history.
+3. Read the verification message in that channel and enter its code in Signs of Life. Codes expire and can be used once; verification belongs to that workspace and destination. Provider acceptance alone does not verify the destination.
+4. Select the verified destination in project notification preferences and send a test. Pause, remove and delivery-history controls work as for existing channels.
+
+Treat webhook URLs as credentials. Rate limits can be retried, but timeouts, ambiguous provider failures and interrupted sends remain uncertain. Acceptance does not prove someone read the message. These integrations send notifications only; they do not read conversations or invite members. Message formatting suppresses mentions.
+
+Provider setup: [Slack incoming webhooks](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) and [Discord webhooks](https://docs.discord.com/developers/resources/webhook).
+
 ## Email
 
 ### Resend
@@ -78,4 +91,4 @@ Anonymous account IDs are remembered without notifications, so a later observed 
 
 ## Implemented today — additional monitoring providers
 
-See [Monitoring integrations](monitoring-integrations.md) for all ten new providers, actual credential permissions, OAuth callbacks, billing webhooks, Better Auth installation, history limitations and separate live acceptance gates. Operator login remains independent.
+See [Monitoring integrations](monitoring-integrations.md) for all twelve additional providers, actual credential permissions, OAuth callbacks, billing webhooks, Better Auth installation, history limitations and separate live acceptance gates. Operator login remains independent.

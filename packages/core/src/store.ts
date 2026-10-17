@@ -55,6 +55,7 @@ export type Destination = {
   kind: ChannelKind;
   name: string;
   address: string;
+  secret: string | null;
   verified: boolean;
   enabled: boolean;
   unsubscribeHash: string;
@@ -108,7 +109,7 @@ export type Snapshot = {
   projects: Project[];
   connections: Omit<Connection, "secret" | "refreshLease">[];
   sources: Source[];
-  destinations: Omit<Destination, "unsubscribeHash">[];
+  destinations: Omit<Destination, "unsubscribeHash" | "secret">[];
   deliveries: Delivery[];
   metrics: Metric[];
   projectDestinations: { projectId: string; destinationId: string }[];
@@ -218,7 +219,7 @@ export interface MonitorStore extends MonitoringStore {
     input: Pick<
       Destination,
       "id" | "workspaceId" | "name" | "kind" | "address" | "unsubscribeHash"
-    >,
+    > & { secret?: string | null },
     limit: number,
   ): Promise<void>;
   destination(

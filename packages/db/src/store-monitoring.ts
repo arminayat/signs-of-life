@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import type { MonitoringStore } from "../../core/src/monitor-store";
 import type { MonitorState } from "../../core/src/monitoring";
@@ -126,7 +126,11 @@ export function monitoringStore(db: Database): MonitoringStore {
                 eq(m.monitorObservations.externalId, event.id),
               ),
             );
-          if (observed) continue;
+          const paymentTransition =
+            !historical &&
+            event.occurredAtSource === "payment_webhook" &&
+            (event.kind === "payment" || event.kind === "renewal");
+          if (observed && !paymentTransition) continue;
           const ref = event.reference;
           const key = JSON.stringify(
             ref
@@ -174,6 +178,22 @@ export function monitoringStore(db: Database): MonitoringStore {
                 )
             )[0];
           if (!canonical) continue;
+          // A signed recovery may arrive after API history already imported the
+          // invoice's creation date. Correct the date without creating a second
+          // event; ordinary polling cannot move it back or replay notification.
+          if (
+            paymentTransition &&
+            new Date(event.occurredAt) > canonical.occurredAt
+          )
+            await tx
+              .update(m.monitorEvents)
+              .set({ occurredAt: new Date(event.occurredAt) })
+              .where(
+                and(
+                  eq(m.monitorEvents.id, canonical.id),
+                  lt(m.monitorEvents.occurredAt, new Date(event.occurredAt)),
+                ),
+              );
           await tx
             .insert(m.monitorObservations)
             .values({

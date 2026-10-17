@@ -18,7 +18,7 @@ Cloudflare Cron dispatches due job IDs through Cloudflare Queues. Dispatch stamp
 
 Account events, cursor progress and delivery jobs are written in one transaction. Source event keys and per-destination delivery keys prevent repeated notifications during overlap reads or duplicate queue dispatches. Collection uses bounded requests and catch-up cursors.
 
-External sends cannot be made atomic with PostgreSQL. Telegram and SMTP timeouts, or interrupted sends, become `uncertain`. Resend uses its idempotency key for retries within its provider window. `accepted` means provider acceptance, not confirmed receipt by the person. Each channel has its own delivery record.
+External sends cannot be made atomic with PostgreSQL. Telegram, Slack, Discord and SMTP timeouts, or interrupted sends, become `uncertain`. Resend uses its idempotency key for retries within its provider window. `accepted` means provider acceptance, not confirmed receipt by the person. Each channel has its own delivery record.
 
 Notification retries stop after eight provider attempts. The first send time bounds Resend retries to 23 hours, including retries pending after an outage. Any earlier ambiguous result remains uncertain if later attempts fail to resolve it.
 
@@ -58,10 +58,16 @@ Apply migration 0004 before deploying the API and web app together (`pnpm db:mig
 
 ## Implemented today — expanded monitoring
 
-Core owns typed provider/report/store contracts and browser-safe setup metadata. adapters/monitoring implements ten protocols; backend owns OAuth, collection, report queries and verified reference lookup; db owns independent history/live state, normalized billing events, provenance, report caches, dashboard views and webhook inboxes. Web configuration keeps provider → connection → resource boundaries. The Better Auth server connector is a separate distributable package using the customer application's adapter; Signs of Life login is unchanged.
+Core owns typed provider/report/store contracts and browser-safe setup metadata. adapters/monitoring implements twelve protocols; backend owns OAuth, collection, report queries and verified reference lookup; db owns independent history/live state, normalized billing events, provenance, report caches, dashboard views and webhook inboxes. Web configuration keeps provider → connection → resource boundaries. The Better Auth server connector is a separate distributable package using the customer application's adapter; Signs of Life login is unchanged.
 
 Billing webhooks authenticate before normalized inbox/job insertion. Page transactions fence the job lease and commit observations, cursors and notification fanout together. Imported records are silent; event preferences default to signup/payment. OAuth refresh uses ciphertext/lease comparison so disconnect and credential rotation cannot be undone by stale workers.
 
 Overview groups Growth, Revenue and Usage, with configurable source reports, advertised filters, order/visibility, charts, funnels and cohort tables. Native period metrics never combine daily unique counts or currencies. Verified Stripe object references can deduplicate RevenueCat observations while preserving provenance; unresolved and aggregate-only sources remain separate. No local MRR/churn formula, identity warehouse, customer writes or browser instrumentation exists.
 
 Provider coverage and operator procedures are in [Monitoring integrations](monitoring-integrations.md). RevenueCat supplies historical aggregates but no project-wide billing-event replay feed; auth history excludes deleted users. Native report results are cached, not an independent data warehouse. Source implementation and automated tests do not imply hosted or live acceptance.
+
+## Implemented today — Google Play, Lemon Squeezy and channel webhooks
+
+Google Play feeds existing native report queries with delayed Pacific-date install/uninstall and country-specific rating data. Lemon Squeezy feeds normalized billing events from signed webhooks and bounded API reconciliation; initial subscription invoices do not duplicate order payments. Neither adds instrumentation or customer writes.
+
+Slack and Discord use the existing Channel/delivery pipeline. Migration 0011 adds an encrypted destination secret; snapshots omit it and redact verification messages. Channel setup sends a single-use code, and authenticated confirmation proves access before notifications can be delivered. Apply the migration before coordinated API/jobs/web rollout; no new environment variables are needed. Setup, limitations and live acceptance remain separate in integration/deployment documentation.

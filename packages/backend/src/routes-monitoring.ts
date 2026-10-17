@@ -143,7 +143,7 @@ export function monitoringRoutes(services: Services) {
       assert(field.optional || value, `credential_${field.id}_required`);
       if (value) credentials[field.id] = value;
     }
-    if (["paddle", "revenuecat"].includes(kind))
+    if (["paddle", "revenuecat", "lemon-squeezy"].includes(kind))
       assert(
         ["production", "sandbox"].includes(credentials.environment),
         "invalid_provider_environment",

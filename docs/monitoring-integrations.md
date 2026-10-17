@@ -2,7 +2,7 @@
 
 ## Implemented today — source and setup
 
-Signs of Life includes adapters for Stripe, Polar, Paddle, RevenueCat, PostHog, Google Analytics 4, Better Auth, WorkOS, Clerk and Auth0 alongside Supabase and App Store Connect. This guide describes source behavior and required setup; [status.md](status.md) records the verified production rollout separately from provider acceptance. Signs of Life operator authentication is unchanged.
+Signs of Life includes adapters for Stripe, Polar, Paddle, RevenueCat, Lemon Squeezy, PostHog, Google Analytics 4, Google Play Console, Better Auth, WorkOS, Clerk and Auth0 alongside Supabase and App Store Connect. This guide describes source behavior and required setup; [status.md](status.md) records the verified production rollout separately from provider acceptance. Signs of Life operator authentication is unchanged.
 
 Create a project, open Sources, choose a provider and connect its account. Then select an actual account, organization, project, property, app, environment or tenant as a source. Auth providers without application attribution monitor their environment/tenant. Connection validity, selected-resource errors, import progress and live collection are separate. Reconnect keeps the notification baseline and checkpoints; it does not replay historical alerts. Source limits default to 25 per workspace; existing MAX_SOURCES overrides still apply.
 
@@ -20,6 +20,38 @@ Create a project, open Sources, choose a provider and connect its account. Then 
 | Auth0       | Native tenant domain (*.auth0.com) and machine-to-machine client ID/secret authorized for the Management API with read:users.                                                                                                                           | Tenant-wide accounts. Minimal-field user search; oversized time windows are bisected. More than 1,000 accounts sharing a timestamp require a minimal-field export, which needs a provider plan that supports exports. Export failure remains visible; no silent truncation. Custom tenant domains are not supported in this release.                                                     |
 
 Existing-user history excludes deleted accounts and can miss users created/deleted between polls. Twelve months is a target, not a promise of provider coverage. Stripe/Paddle lifecycle retention and RevenueCat webhook-only event coverage remain visible limitations.
+
+## Implemented today — Google Play Console
+
+Connect in project Sources with a dedicated Google service-account JSON key and the reports bucket ID copied from Play Console Download reports (typically `pubsite_prod_rev_…`). Grant that service account global access to view app information and download bulk reports in Play Console. The adapter requests only the `devstorage.read_only` OAuth scope and refreshes short-lived tokens through the encrypted connection lifecycle. The JSON key can have broader IAM privileges if the owner grants them; use a dedicated account with the minimum required access.
+
+App selection lists package names discovered in accessible install-report objects. Apps without generated install reports are not listed. The adapter reads monthly UTF-16 CSV exports on Google Cloud Storage, without writes or instrumentation. Bounds are 100 catalog pages, 5,000 packages, 16 MB per report, 32 MB per query and 366 reporting dates; exceeding a bound fails visibly.
+
+Reports cover daily device installs, daily device uninstalls, daily average rating and total average rating, on Pacific reporting dates. Install/uninstall counts sum reported country rows; an optional uppercase country code filters them. Ratings require a country code (for example `US`) and never combine country averages or sum ratings across dates. Use Overview report configuration to choose reports and filters.
+
+Google documents a 3–7-day publication delay. Missing objects, dates or values stay unavailable/partial; only explicit numeric zero is zero. Scheduled refreshes re-read the latest 30-day view ranges for corrections; longer ranges can be queried on demand. Google Play provides aggregate reports here, so it sends no individual install alerts. Selected reports can appear in project daily summaries.
+
+References: [Google Play bulk reports](https://support.google.com/googleplay/android-developer/answer/6135870?hl=en), [Cloud Storage OAuth scopes](https://docs.cloud.google.com/storage/docs/oauth-scopes).
+
+## Implemented today — Lemon Squeezy
+
+Connect with an API key, an explicit `production` or `sandbox` environment, and optionally a webhook signing secret. Select a store from the API catalog. Keys can have privileges beyond reading; the adapter only makes API reads. Store and environment remain distinct from other sources.
+
+Configure the connection's Webhook endpoint in Lemon Squeezy and subscribe to `order_created`, `order_refunded`, `subscription_payment_success`, `subscription_payment_refunded`, `subscription_payment_failed` and `subscription_cancelled`. `subscription_payment_recovered` is also supported and shares the successful invoice identity. Save the same signing secret in Signs of Life. Raw-body HMAC-SHA256 authentication precedes normalized inbox/job insertion.
+
+Orders own initial payments, including initial subscription purchases; accompanying initial invoices do not duplicate them. Subsequent invoices supply renewals or subscription-change payments. Historical imports and periodic reconciliation page through orders and subscription invoices; imports stay silent. Cancellations and failed attempts require webhooks because current records cannot reconstruct their history. Full refunds can be reconciled; partial refunds require webhooks. Refunds count each refunded payment once, without inventing monetary totals from cumulative amounts. Initial subscription-invoice refunds resolve the subscription's order ID to share the order refund identity.
+
+Signed successful/recovered invoice events use the payment update time. A later recovery can advance an already-imported invoice and notify once; subsequent polling cannot move it back or replay the alert. Signed partial-refund events are accepted even when the provider still labels the payment paid and has no full-refund timestamp; the cumulative amount is not treated as a separate refund amount.
+
+Overview offers observed payment, renewal, refunded-payment, cancellation and failed-payment counts. No MRR, churn or revenue total is invented. Existing preferences control live alerts; signup/payment remain the shared defaults. No customer emails or full provider payloads are stored.
+
+References: [API](https://docs.lemonsqueezy.com/api), [event types](https://docs.lemonsqueezy.com/help/webhooks/event-types), [signatures](https://docs.lemonsqueezy.com/help/webhooks/signing-requests).
+
+## Planned/aspirational — release of the four new integrations
+
+Google Play, Lemon Squeezy, Slack and Discord are local source implementations until deployed and accepted separately. Apply migration `0011_webhook_destinations` with `pnpm db:migrate`, then deploy compatible API/jobs/web builds. The migration adds a nullable encrypted destination secret, preserving existing destinations. No new environment variables, OAuth registrations or runtime bindings are required. Enter customer credentials in the dashboard; see [Slack/Discord setup](integrations.md#slack-and-discord).
+
+Before live acceptance, use isolated provider accounts: discover a Google Play app and compare one report/date/country, discover a Lemon Squeezy store and verify signed billing events plus reconciliation, and complete channel verification plus an observed test message in Slack and Discord. Fixture checks do not establish live outcomes.
 
 ## Implemented today — operator OAuth registrations
 
@@ -40,14 +72,14 @@ Register Polar with the read scopes above. Google must grant offline access for 
 
 ## Implemented today — billing webhooks
 
-After connecting Stripe, Polar, Paddle or RevenueCat, open its Webhook dialog in Sources. Copy the displayed `PUBLIC_URL/api/webhooks/monitor/<connection UUID>` endpoint into that provider's dashboard, and save the provider signing secret (RevenueCat: an exact dedicated Authorization header secret) in the dialog. Do not put customer keys in deployment vars.
+After connecting Stripe, Polar, Paddle, RevenueCat or Lemon Squeezy, open its Webhook dialog in Sources. Copy the displayed `PUBLIC_URL/api/webhooks/monitor/<connection UUID>` endpoint into that provider's dashboard, and save the provider signing secret (RevenueCat: an exact dedicated Authorization header secret) in the dialog. Do not put customer keys in deployment vars.
 
 - Stripe: subscribe to charge.succeeded, invoice.paid, invoice.payment_failed, refund.created, refund.updated and customer.subscription.deleted. A 2024-06-20 webhook version is supported; modern charge events are read back with the pinned API version before classification. Invoice-associated charges share the invoice identity, preventing duplicate payment alerts.
 - Polar: order.paid, refund.created/refund.updated, subscription.canceled and subscription.past_due. Standard webhook signatures accept the documented legacy/new Polar signing-key encodings.
 - Paddle: transaction.completed, transaction.payment_failed, adjustment.updated and subscription.canceled. Use the endpoint matching the selected production/sandbox environment.
 - RevenueCat: initial/non-renewing purchases, renewals, cancellation and billing issues. CUSTOMER_SUPPORT cancellation is a refund, not proof that auto-renewal stopped; its original purchase price is not treated as refund amount. Trial starts do not count as successful payments. BILLING_ERROR cancellation is ignored in favor of BILLING_ISSUE.
 
-Authentication is checked before normalized observations and a processing job are committed atomically. Raw payloads, subscriber profiles, emails, names, addresses and arbitrary metadata are discarded. Signed webhooks enforce a five-minute signature tolerance; repeated events deduplicate through durable identities. Keep provider delivery retries enabled. The API currently bounds incoming request bodies to 128 KB; rejected requests are not accepted/acknowledged as processed.
+Authentication is checked before normalized observations and a processing job are committed atomically. Raw payloads, subscriber profiles, emails, names, addresses and arbitrary metadata are discarded. Stripe, Polar and Paddle signatures enforce a five-minute tolerance. Lemon Squeezy signs the raw body without a timestamp; RevenueCat uses its configured Authorization secret. Repeated events deduplicate through durable identities. Keep provider delivery retries enabled. The API currently bounds incoming request bodies to 128 KB; rejected requests are not accepted/acknowledged as processed.
 
 Stripe references supplied by RevenueCat are candidates only. A same-project connected Stripe account must successfully read the exact object and agree on event kind/environment before matching; provenance remains on each source. Unsupported, ambiguous or inaccessible matches remain separate. A repeated source event is not alerted again when match availability changes. Native MRR, churn, unique users and report totals always remain source-specific. No inferred grand total or identity-by-email exists.
 
@@ -76,13 +108,15 @@ Signup and successful-payment alerts start enabled; renewals, refunds, cancellat
 
 Visible event/delivery history is 30 days. Apple aggregates and minimal observation identities support a 365-day window; unfinished imports/stalled cursors retain dedup identities longer. Normalized event amounts/currency are cleared after 30 days. Native report caches store range/filter results and are invalidated once their range starts outside retention; fresh in-range results are requested from the provider. Daily series points are also retained independently for 365 days. If a provider query fails, retained in-range points can be shown as partial/stale, without a synthesized period total or mixed reporting currencies. Data never previously collected cannot be recreated.
 
-## Planned/aspirational — operator rollout and live acceptance procedure
+## Original ten-provider rollout and pending live acceptance
+
+The migration/deployment steps below describe the earlier ten-provider release. Its rollout is recorded beneath the checklist; its provider acceptance remains pending. Use the four-integration release section above for the current upgrade.
 
 1. Back up private application/identity/migration schemas and encryption keys. Review/apply **0005_monitoring, 0006_monitor_webhooks, 0007_monitor_health, 0008_source_environments, 0009_retained_metric_series, 0010_monitor_notification_claim** with `pnpm db:migrate` using the migration role. Existing records are preserved; 0008 extends source uniqueness to include environment and carries forward existing monitoring state.
 2. Configure installation OAuth pairs and connector hostname allowlist; provider registrations and customer credentials are external prerequisites. Preserve MAX_SOURCES if intentionally overridden.
 3. Run `pnpm check`, connector build/pack, migration tests, `git diff --check` and all three Worker bundle dry runs. Local/production browser verification requires explicit task authorization; the repository's existing CI fixture suite runs on push.
 4. Deploy compatible API, jobs and web revisions together, after migrations. Verify hosted revision/schema/readiness, then customer credential/resource access. Do not partially advertise a provider as live-verified from fixtures alone.
-5. For **each of all ten providers**, connect a real isolated account/environment, read its catalog and at least one supported report/event, verify pagination/coverage and observe collection progress. Billing providers additionally need an authentic webhook and API reconciliation read; auth providers need a real newly created account; native metrics require actual plan/scopes. Confirm historical imports send no alerts and test a live destination separately.
+5. For **each of the original ten providers**, connect a real isolated account/environment, read its catalog and at least one supported report/event, verify pagination/coverage and observe collection progress. Billing providers additionally need an authentic webhook and API reconciliation read; auth providers need a real newly created account; native metrics require actual plan/scopes. Confirm historical imports send no alerts and test a live destination separately. The four additional integrations have their own rollout section above.
 
 Implemented today — production rollout: migrations 0005–0010 and compatible API/jobs/web are deployed; hosted revision/schema/readiness, asset bytes, route guards and existing collection progress were checked on 2026-09-26. See [status.md](status.md) for exact commits and Worker versions. New-provider OAuth registrations, customer credentials, Better Auth hostname allowlisting and notification-channel setup remain external prerequisites.
 

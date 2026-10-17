@@ -86,7 +86,7 @@ export async function request(
   try {
     response = await http(url, {
       ...init,
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(20_000),
     });
   } catch {

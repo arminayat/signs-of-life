@@ -24,7 +24,10 @@ export type AppConfig = {
       { credentials: boolean; oauth: boolean }
     >
   >;
-  channels: { telegram: boolean; email: boolean };
+  channels: Record<
+    import("../../../packages/core/src/model").ChannelKind,
+    boolean
+  >;
   limits: { projects: number; sources: number; destinations: number };
 };
 export class ApiError extends Error {
@@ -98,6 +101,10 @@ const messages: Record<string, string> = {
     "This connection belongs to another project. Add a connection in this project’s Sources view.",
   already_exists: "This connection or source already exists.",
   invalid_input: "Check the fields and try again.",
+  invalid_webhook_url:
+    "Use a Slack incoming webhook URL or a Discord channel webhook URL for the selected channel.",
+  verification_code_expired_or_invalid:
+    "This code is incorrect, expired or already used. Check the channel or request a new code.",
   verification_link_expired_or_used:
     "This link has expired or has already been used. Request another verification email in Destinations.",
   supabase_reconnect_required: "Reconnect Supabase to resume collection.",

@@ -13,3 +13,7 @@
 - **Active provider boundary:** RevenueCat has no project-wide historical billing-event feed → aggregates cannot reconstruct missed webhooks → import native chart history, label event coverage incomplete and require authenticated webhooks. No email/customer-string fallback is allowed.
 
 - **Resolved/covered:** an expired worker overwrote a newer worker’s error → error handling was outside the page lease fence → job_lease_lost exits without health/checkpoint mutation → stale-worker health regression test.
+
+- **Resolved test-isolation issue:** static fake webhook URLs hit the global recipient throttle when the lifecycle suite is rerun → workspace cleanup intentionally does not remove recipient rate-limit keys → tests generate unique provider-shaped URLs per fixture while preserving production throttling. Verified with consecutive webhook-destination suites.
+
+- **Resolved/covered:** Discord could render underscores in verification codes as Markdown emphasis, making the copied code incorrect → Discord verification messages wrap only the code in inline-code formatting; Slack retains plain text with Markdown disabled → webhook-destination regression verifies an underscore-bearing code is preserved and confirms successfully.

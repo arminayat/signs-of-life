@@ -86,7 +86,7 @@ test.each([false, true])(
       const ledger = await db.execute(
         sql`SELECT count(*)::int AS count FROM signs_of_life_migrations.__drizzle_migrations`,
       );
-      expect(ledger.rows[0]?.count).toBe(11);
+      expect(ledger.rows[0]?.count).toBe(12);
       const missingDaily = await db.execute(
         sql`select count(*)::int as count from signs_of_life.projects p where not exists (select 1 from signs_of_life.jobs j where j.key = 'daily:' || p.id)`,
       );

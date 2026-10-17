@@ -20,3 +20,7 @@
 - **Resolved/covered:** a delayed collector could mark a disconnected connection connected or restore its secret → generic connection updates lacked an active guard → updates and refresh lease acquisition require an active connection → disconnect-race tests cover stale writes.
 
 - **Operational workaround verified:** this release host cannot route to the production database’s IPv6 endpoint → use the project’s discovered IPv4 session-pooler endpoint with `sslmode=verify-full` and its saved Supabase CA → verify identity/schema before migration; never disable certificate validation or guess a pooler hostname.
+
+- **Resolved/covered:** new webhook channels must not expose URLs or confirmation codes through dashboard snapshots → encrypted destination secret is omitted and all verification notifications are redacted → webhook-destination lifecycle tests cover stored encryption, snapshot secrecy and bound confirmation. Apply migration 0011 before new code.
+
+- **Resolved/covered:** a recovered invoice could be silently imported with a pre-connection creation timestamp before its webhook arrived → explicit authenticated payment-time authority lets the webhook correct the same canonical event and claim one eligible notification. Unmarked polling cannot revert the date or replay it; new-source-lifecycle.test.ts covers import-before-webhook and success/recovery duplicates.

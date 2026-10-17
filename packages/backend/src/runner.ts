@@ -97,6 +97,21 @@ async function deliver(
     });
     return;
   }
+  let address = destination.address;
+  if (destination.kind === "slack" || destination.kind === "discord") {
+    if (!destination.secret) {
+      await store.updateDelivery(delivery.id, {
+        status: "failed",
+        lastError: "destination_credentials_missing",
+      });
+      return;
+    }
+    const credentials = await services.secrets.open<{ url: string }>(
+      destination.secret,
+      destination.id,
+    );
+    address = credentials.url;
+  }
   await store.updateDelivery(delivery.id, {
     status: "sending",
     startedAt: delivery.startedAt ?? new Date(),
@@ -107,7 +122,7 @@ async function deliver(
     `${services.config.AUTH_SECRET}:unsubscribe:${destination.id}`,
   );
   const result = await channel.send(
-    destination.address,
+    address,
     delivery.notification,
     delivery.id,
     delivery.purpose === "verification"

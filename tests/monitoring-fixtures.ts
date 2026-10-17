@@ -18,6 +18,8 @@ export const fixtureCredentials: Record<MonitorKind, Credentials> = {
   },
   clerk: { apiKey: "sk_test_fixture" },
   auth0: { domain: "fixture.eu.auth0.com", accessToken: "fixture" },
+  "google-play": { bucket: "pubsite_prod_rev_fixture", accessToken: "fixture" },
+  "lemon-squeezy": { apiKey: "fixture", environment: "production" },
 };
 export const unwanted = {
   email: "never-store@example.test",
@@ -27,6 +29,25 @@ export const unwanted = {
 };
 export function catalogFixture(kind: MonitorKind, input: string) {
   switch (kind) {
+    case "google-play":
+      return {
+        items: [
+          {
+            name: "stats/installs/installs_com.example.app_202601_country.csv",
+          },
+        ],
+      };
+    case "lemon-squeezy":
+      return {
+        data: [
+          {
+            type: "stores",
+            id: "1",
+            attributes: { ...unwanted, name: "Fixture store" },
+          },
+        ],
+        links: { next: null },
+      };
     case "stripe":
       return { id: "acct_fixture", ...unwanted };
     case "polar":

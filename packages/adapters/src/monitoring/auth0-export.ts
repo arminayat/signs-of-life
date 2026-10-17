@@ -64,7 +64,7 @@ export async function auth0Export(
   );
   // Presigned URL, no tenant credential forwarding, redirect following or disk file.
   const response = await http(location, {
-    redirect: "error",
+    redirect: "manual",
     signal: AbortSignal.timeout(20_000),
   });
   assert(response.ok && response.body, "auth0_export_unavailable", 502);

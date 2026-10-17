@@ -22,3 +22,7 @@ Keep feature-only components in their feature modules. Reuse ui.tsx wrappers for
 ## Implemented today — expanded monitoring
 
 monitor-connection.tsx owns provider setup/webhook dialogs; monitor-status.tsx owns history/live health and per-event preferences; monitor-views.tsx owns ordered/hidden filtered views; monitor-overview.tsx owns ranges and provider cards; monitor-chart.tsx owns aggregate charts/funnel bars/cohort tables and exact values. monitoring.css supplies responsive layouts. project-overview.tsx exports LegacyOverview for existing Supabase/Apple charts.
+
+DestinationVerification in destination-verification.tsx submits the channel code to /destinations/:id/confirm. DestinationsPage and DestinationDialog support Slack/Discord webhook URL forms, resend and confirmation; pending channel destinations cannot be selected in project routing UI. Shared provider metadata exposes Google Play and Lemon Squeezy setup, and the connection Webhook dialog includes Lemon Squeezy.
+
+ViewEditor uses a text input when a provider filter does not enumerate values (for example a Google Play country code), and a selector when values are enumerated. Saved view labels include filters so country-specific views can be distinguished. Backend validates supported filters and provider-specific values.

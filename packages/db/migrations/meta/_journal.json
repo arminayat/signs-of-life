@@ -78,6 +78,13 @@
       "when": 1790412428657,
       "tag": "0010_monitor_notification_claim",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792260308244,
+      "tag": "0011_webhook_destinations",
+      "breakpoints": true
     }
   ]
 }

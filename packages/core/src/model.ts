@@ -1,6 +1,6 @@
 import type { MonitorKind } from "./monitoring";
 export type SourceKind = "supabase" | "apple" | MonitorKind;
-export type ChannelKind = "telegram" | "email";
+export type ChannelKind = "telegram" | "email" | "slack" | "discord";
 export type Notification = { title: string; text: string };
 export type Identity = {
   issuer: string;

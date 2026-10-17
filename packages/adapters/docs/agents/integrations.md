@@ -17,4 +17,8 @@ Mocks: tests/helpers.ts substitutes auth, sources, reports and channels; tests/a
 
 ## Implemented today — monitoring protocols
 
-monitoring/ owns the ten providers; credentials and real permission boundaries are enumerated in core/provider-registry.ts and root docs/monitoring-integrations.md. Stripe API reads are pinned to 2024-06-20; invoice linkage is hydrated for modern event objects. Provider native calculations are preserved; PostHog period unique values and GA4 period results use separate requests. No raw profile/payload persistence is exposed by adapter outputs.
+monitoring/ owns the twelve providers; credentials and real permission boundaries are enumerated in core/provider-registry.ts and root docs/monitoring-integrations.md. Stripe API reads are pinned to 2024-06-20; invoice linkage is hydrated for modern event objects. Provider native calculations are preserved; PostHog period unique values and GA4 period results use separate requests. No raw profile/payload persistence is exposed by adapter outputs.
+
+Google Play reads GCS install/rating country reports using a service-account Storage read-only token; google-play-reports.ts validates bounded UTF-16 CSV. Missing dates stay unavailable; rating averages require a country and are never summed. Lemon Squeezy reads store/order/invoice APIs and authenticates raw-body HMAC webhooks; initial purchases belong to orders, refunds count once per payment without inferred money, and cancellation/failure history requires webhooks. See root monitoring-integrations.md for bounds and setup.
+
+webhook-channels.ts implements Slack/Discord POST-only delivery to strict provider URL allowlists, without redirects or mention expansion. Slack requires an ok response; Discord wait=true requires a message ID. HTTP 429 retries; network/5xx/ambiguous success stays uncertain. URLs are credentials, decrypted only by backend before send. No operator env keys are needed.

@@ -70,6 +70,9 @@ export function ProjectSettings({
                 <Checkbox
                   key={destination.id}
                   isSelected={selected.includes(destination.id)}
+                  isDisabled={
+                    !destination.verified && !selected.includes(destination.id)
+                  }
                   onChange={(checked) =>
                     setSelected((ids) =>
                       checked

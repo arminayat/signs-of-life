@@ -10,6 +10,8 @@ import { paddle } from "./paddle";
 import { revenuecat } from "./revenuecat";
 import { posthog } from "./posthog";
 import { ga4 } from "./ga4";
+import { googlePlay } from "./google-play";
+import { lemonSqueezy } from "./lemon-squeezy";
 export function monitorAdapter(
   kind: MonitorKind,
   http: Http,
@@ -28,6 +30,10 @@ export function monitorAdapter(
       return posthog(http);
     case "ga4":
       return ga4(http);
+    case "google-play":
+      return googlePlay(http);
+    case "lemon-squeezy":
+      return lemonSqueezy(http);
     default:
       return authSource(kind, http, allowedHosts);
   }

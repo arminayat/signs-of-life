@@ -172,9 +172,13 @@ export function ProjectConnections({
                   Reconnect
                 </Button>
                 {connection.active &&
-                  ["stripe", "polar", "paddle", "revenuecat"].includes(
-                    connection.kind,
-                  ) && (
+                  [
+                    "stripe",
+                    "polar",
+                    "paddle",
+                    "revenuecat",
+                    "lemon-squeezy",
+                  ].includes(connection.kind) && (
                     <Button
                       variant="ghost"
                       size="sm"

@@ -1,6 +1,7 @@
 import type {
   AccountSource,
   Channel,
+  ChannelKind,
   ReportSource,
   SecretBox,
   SourceKind,
@@ -22,7 +23,7 @@ export type Services = {
   secrets: SecretBox;
   accounts: AccountSource;
   reports: ReportSource;
-  channels: Partial<Record<"telegram" | "email", Channel>>;
+  channels: Partial<Record<ChannelKind, Channel>>;
 };
 export type ApiServices = Services & { auth: Authentication };
 export function supabaseOAuth(config: Config): SupabaseOAuthConfig {

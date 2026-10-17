@@ -30,7 +30,7 @@ it("disables redirects and bounds decoded response size", async () => {
       headers: { Authorization: "Bearer fixture" },
     }),
   ).rejects.toMatchObject({ code: "provider_response_too_large" });
-  expect(http.mock.calls[0][1]?.redirect).toBe("error");
+  expect(http.mock.calls[0][1]?.redirect).toBe("manual");
   expect(http.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
 });
 it("bounds DNS resolution as well as the HTTP request", async () => {

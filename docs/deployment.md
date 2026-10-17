@@ -93,6 +93,10 @@ Apply migration 0004 with `pnpm db:migrate` before deploying the API and web app
 
 Validation: type checking, 42 backend/database tests, production build, API/web Worker dry runs and `git diff --check` pass. Browser tests were updated but not run locally for this change.
 
+## Planned/aspirational — Google Play, Lemon Squeezy, Slack and Discord rollout
+
+Apply migration `0011_webhook_destinations` with `pnpm db:migrate` before upgrading API/jobs. It adds a nullable encrypted destination secret and preserves existing destinations. Deploy API, jobs and web together. No new environment variables, bindings or installation OAuth registrations are required; credentials are entered per connection/destination. Follow [monitoring setup](monitoring-integrations.md) and [channel setup](integrations.md#slack-and-discord). Verify each provider and message receipt separately after deployment; source and fixture checks alone do not establish acceptance.
+
 ## Planned/aspirational — ten-provider rollout
 
 Apply additive migrations 0005–0010, configure optional OAuth registration pairs and MONITOR_ALLOWED_HOSTS on API and jobs, and deploy compatible API/jobs/web revisions together. Existing MAX_SOURCES overrides remain valid; the default is 25. Follow [the monitoring release procedure](monitoring-integrations.md#plannedaspirational--coordinated-release-and-live-acceptance). Browser tests were not authorized for this implementation; external registrations, deployment and real provider acceptance remain separate gates.

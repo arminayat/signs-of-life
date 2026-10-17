@@ -144,15 +144,15 @@ export function postgresStore(db: Database): MonitorStore {
         ),
         sources,
         destinations: destinations.map(
-          ({ unsubscribeHash: _, ...safe }) => safe,
+          ({ unsubscribeHash: _, secret: __, ...safe }) => safe,
         ),
         deliveries: deliveries.map((d) =>
           d.purpose === "verification"
             ? {
                 ...d,
                 notification: {
-                  title: "Verify email destination",
-                  text: "Verification email",
+                  title: "Verify destination",
+                  text: "Verification message",
                 },
               }
             : d,

@@ -11,7 +11,7 @@ Signs of Life is a standalone AGPL-3.0-only pnpm workspace for account, billing 
 - **apps/jobs — data pipeline/operations runtime:** Node direct job loop or Cloudflare Cron/Queue dispatch and consumption.
 - **packages/core — internal library:** domain/provider/store contracts and date helpers.
 - **packages/db — database/internal library:** PostgreSQL schema, migrations, identity resolution, transactional collection/delivery and durable jobs.
-- **packages/adapters — integrations/internal library:** operator auth, Supabase/Apple and ten monitoring sources, Telegram/Resend/SMTP and cryptography.
+- **packages/adapters — integrations/internal library:** operator auth, Supabase/Apple and twelve monitoring sources, Telegram/Slack/Discord/Resend/SMTP and cryptography.
 - **packages/backend — backend/API and pipeline library:** configuration/composition, endpoints, authorization and job use cases.
 - **packages/better-auth-connector — distributable library/server plugin:** read-only account endpoint for customer Better Auth applications; independent of operator login.
 

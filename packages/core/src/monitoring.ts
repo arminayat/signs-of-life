@@ -11,6 +11,8 @@ export const monitorKinds = [
   "workos",
   "clerk",
   "auth0",
+  "google-play",
+  "lemon-squeezy",
 ] as const;
 export type MonitorKind = (typeof monitorKinds)[number];
 export function isMonitorKind(value: string): value is MonitorKind {
@@ -38,6 +40,9 @@ export type Observation = {
   resourceId: string;
   kind: EventKind;
   occurredAt: string;
+  // Authenticated payment transitions can correct an invoice-creation fallback
+  // imported before the payment actually succeeded. Never accept from clients.
+  occurredAtSource?: "payment_webhook";
   environment: string;
   amount?: string;
   currency?: string;

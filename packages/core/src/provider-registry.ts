@@ -34,6 +34,50 @@ const billing: readonly EventKind[] = [
 ];
 export const providers: ProviderDefinition[] = [
   {
+    id: "google-play",
+    name: "Google Play Console",
+    group: "growth",
+    resource: "Android app",
+    oauth: false,
+    events: [],
+    fields: [
+      {
+        id: "serviceAccount",
+        label: "Service account JSON",
+        secret: true,
+        multiline: true,
+      },
+      {
+        id: "bucket",
+        label: "Reports bucket ID",
+        placeholder: "pubsite_prod_rev_0123456789",
+      },
+    ],
+    guidance:
+      "Grant the service account access to view app information and download bulk reports in Play Console. Copy the reports bucket ID from Download reports. Daily install, uninstall and rating reports can take 3–7 days to appear. Ratings require a country filter.",
+    docs: "https://support.google.com/googleplay/android-developer/answer/6135870?hl=en",
+  },
+  {
+    id: "lemon-squeezy",
+    name: "Lemon Squeezy",
+    group: "revenue",
+    resource: "Store",
+    oauth: false,
+    events: billing,
+    fields: [
+      key,
+      {
+        id: "environment",
+        label: "Environment",
+        placeholder: "production or sandbox",
+      },
+      webhook,
+    ],
+    guidance:
+      "Use a Lemon Squeezy API key for the chosen production or sandbox environment. The key can have permissions beyond reading. Add a signed billing webhook for timely alerts; historical coverage varies by event. Initial subscription payments are counted once.",
+    docs: "https://docs.lemonsqueezy.com/help/webhooks/event-types",
+  },
+  {
     id: "stripe",
     name: "Stripe",
     group: "revenue",

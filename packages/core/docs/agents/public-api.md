@@ -19,3 +19,7 @@ MonitorStore methods carry workspace IDs on public reads/mutations; worker-only 
 ## Implemented today — expanded monitoring
 
 monitoring.ts, provider-registry.ts and monitor-store.ts are source-level imports. Amounts and provider measurements use decimal strings. Null, zero, unsupported, partial and unavailable are distinct; period unique users/rates must come from providers. Observation.candidate never grants a verified identity; backend authenticates a referenced object before setting reference.
+
+ChannelKind includes telegram, email, slack and discord. Destination.secret is nullable encrypted webhook data; Snapshot omits secret and unsubscribeHash. Google Play and Lemon Squeezy use the existing ProviderAdapter interface and credential/resource metadata. No new job kinds are needed.
+
+Observation.occurredAtSource="payment_webhook" is emitted only for authenticated invoice payment transitions. It permits correction of an imported invoice-creation fallback and notification through the existing one-time canonical claim; it is never accepted as a client field.

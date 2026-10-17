@@ -8,7 +8,7 @@
 - src/project-detail.tsx: project routing/sidebar; project-sources.tsx, project-overview.tsx, project-notifications.tsx: project views.
 - src/project-settings.tsx, source-dialog.tsx, connections.tsx: feature forms/integration controls.
 - src/project-chart.tsx: SVG chart plus daily-value table.
-- src/destinations.tsx and other-pages.tsx: destination, activity, settings and verification screens.
+- src/destinations.tsx, destination-verification.tsx and other-pages.tsx: destination setup, channel-code confirmation, activity, settings and verification screens.
 - src/styles.css, responsive.css, project.css, content-frame.css: tokens/base, responsive/login, project, header/footer styling.
 - src/cloudflare.ts, wrangler.jsonc, worker-configuration.d.ts: asset/API forwarding deployment.
 - index.html, vite.config.ts, package.json: boot/build/package metadata.
