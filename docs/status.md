@@ -139,9 +139,9 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 
 ## Repository reliability implementation — 2026-10-22
 
-### Implemented today — local working tree
+### Historical implementation state — 2026-10-22
 
-All concrete fixes and efficiency/workflow improvements from [the repository review](repository-review-2026-10-22.md) are implemented across the eight children. This includes required worker write fencing and consistent transaction locks, credential refresh comparison, delayed-summary catch-up, delivery uncertainty preservation, provider normalization/quality fixes, bounded maintenance and batched dispatch/ingestion, schema-aware readiness, safer/faster dashboard behavior and disposable test-database tooling. Existing unrelated local edits are preserved; this is not a committed or deployed release.
+All concrete fixes and efficiency/workflow improvements from [the repository review](repository-review-2026-10-22.md) are implemented across the eight children. This includes required worker write fencing and consistent transaction locks, credential refresh comparison, delayed-summary catch-up, delivery uncertainty preservation, provider normalization/quality fixes, bounded maintenance and batched dispatch/ingestion, schema-aware readiness, safer/faster dashboard behavior and disposable test-database tooling. At this implementation checkpoint the changes were local only; the later 2026-10-23 release record supersedes that state.
 
 ### Automated verification — local only
 
@@ -156,7 +156,7 @@ All concrete fixes and efficiency/workflow improvements from [the repository rev
 
 Apply additive migrations **0012–0013** before coordinated API/jobs/web rollout. Index creation may hold write locks. If migration and runtime roles differ, grant runtime USAGE on the private migration schema and SELECT on its ledger as documented in [deployment.md](deployment.md). No new application environment variables or provider scopes are needed. The supplied Compose API allows 35 seconds for the bounded shutdown and checks schema-aware readiness; other hosts should allow at least 30 seconds. Rebuild/distribute the Better Auth connector for installed consumers; no package publication was performed.
 
-No browser tests, CI run, production migration/deployment, live provider calls or recipient acceptance were performed. Previous dated hosted records remain historical; this local implementation does not update those claims.
+At this implementation checkpoint no browser tests, CI run, production migration/deployment, live provider calls or recipient acceptance had been performed. See the later release record for subsequent rollout evidence.
 
 ## Implementation double-check — 2026-10-23
 
@@ -173,7 +173,7 @@ Both reviewers confirmed their findings closed, with no remaining concrete check
 ### Implemented and deployed
 
 - Added the static landing page within `apps/web/landing`, its independent Vite build and assets-only Cloudflare config. It inherits the dashboard theme, introduces the product with explicitly labeled sample data, groups implemented integrations and directs signup to the existing GitHub login at `https://sol.arminayat.dev/`. Native FAQ disclosures and all links work without JavaScript. No analytics, form endpoint, environment variable or migration was added.
-- Deployed only `signs-of-life-landing`, version `653d6c0b-f888-4ab5-b2c0-2b726b017fd2`, at `https://soll.arminayat.dev/`. No dashboard/API/jobs or database release occurred; unrelated local reliability changes remain outside this deployment. Source changes remain in the local working tree.
+- Deployed only `signs-of-life-landing`, version `653d6c0b-f888-4ab5-b2c0-2b726b017fd2`, at `https://soll.arminayat.dev/`. No dashboard/API/jobs or database release occurred; unrelated local reliability changes remain outside this deployment. At this landing-only checkpoint, source changes remained in the local working tree; they were subsequently committed in the coordinated release.
 
 ### Verification and limits
 
@@ -199,6 +199,21 @@ Both reviewers confirmed their findings closed, with no remaining concrete check
 - At 15:00 UTC, queue backlog was zero. A bounded live tail captured one successful queue invocation with no exceptions, warning logs or error logs. This does not establish every provider's health or recipient delivery.
 - Existing recurring jobs adopt the new interval on their next successful run. Daily usage reduction has not yet been measured over a representative post-release interval.
 
-## Latest release preparation — 2026-10-23
+## Coordinated reliability and landing release — 2026-10-23
 
-The reliability implementation and public landing source have been reconciled with the five-minute polling release on main. Local verification passes TypeScript, **313 tests across 38 files**, connector/dashboard/landing builds, all four Worker dry runs and `git diff --check`. A scan of all release source files found no secrets. The scheduled-handler tests now exercise reservation-based dispatch while preserving empty-scan and failed-publication connection cleanup coverage. No local browser tests were run. Deployment evidence follows separately once rollout is complete.
+The reliability implementation and public landing source have been reconciled with the five-minute polling release on main. Local verification passes TypeScript, **313 tests across 38 files**, connector/dashboard/landing builds, all four Worker dry runs and `git diff --check`. A scan of all release source files found no secrets. The scheduled-handler tests now exercise reservation-based dispatch while preserving empty-scan and failed-publication connection cleanup coverage. No local browser tests were run.
+
+### Committed, verified and deployed
+
+- Application implementation: `2e3eb8d6bbb7a06b53b3603713135aa87b523031`. Final release revision: `5432e8462a4f4cc5dd0e8b6f2799eae3a4aa4068`, adding only a CI package-mirror fix and its documentation. The earlier CI attempt was cancelled after very slow Azure Ubuntu package downloads; a fresh runner had the same delay. The final workflow uses Ubuntu's official HTTPS archive, fetching the same 25.9 MB in one second.
+- [GitHub Actions 39992124499](https://github.com/arminayat/signs-of-life/actions/runs/39992124499) passed both jobs: 313 tests across 38 files, TypeScript, connector/dashboard/landing builds, all **8 existing CI browser tests**, all four Worker dry runs, and container readiness/static-routing checks. No local or production browser testing was performed.
+- Backed up all three private PostgreSQL schemas and retained restoration keys in owner-only ignored artifacts before applying **0012–0013** through the repository's Drizzle migration runner. All **14 migration hashes** match source. Project/source/connection/destination/event/observation counts and the encrypted connection-credential digest were unchanged. Both indexes exist. The restricted runtime role now has USAGE on the migration schema and SELECT on its ledger; access was verified using that role.
+- All four Workers are serving the final release at 100%: API `4b9434f1-81d7-4a40-a0e6-15671782ebbc`; jobs `989b2f34-fcfb-4e96-8c1e-2dc37f21cec9`; dashboard `3c2fa5d6-50f9-4da1-b782-c895c23d617b`; landing `8c62bf2e-1900-420e-b241-a7d319f8850b`. Existing secret bindings, non-release variables, service/queue bindings and Hyperdrive configuration were preserved. The minute Cron and existing consumer batch settings remain in place. Prior Worker versions and the database archive are retained for rollback.
+- `https://sol.arminayat.dev/api/health`, `/api/ready` and `/api/config` return 200 with the exact release revision. Login and configured channel/source capabilities remain enabled. Unauthenticated dashboard/session/project requests return 401. Dashboard root/deep-link HTML, all 14 JavaScript/CSS assets and favicon match the local build; the landing HTML/CSS/favicon at `https://soll.arminayat.dev/` also match. Both sites return their security headers; nonexistent landing paths and its `/api/session` return 404.
+- A sampled scheduled invocation of the new jobs version completed successfully, emitted persisted `worker_health` diagnostics and had no exceptions. Post-deployment database checks found no failed jobs, jobs overdue by five minutes, expired leases, source errors or connection errors. A source collection advanced its checkpoint after rollout; all six recurring jobs returned to pending with no recorded job errors.
+
+### User experience and remaining acceptance
+
+The themed landing page directs visitors to the existing login. The dashboard includes the framed layout, lazy-route loading/error recovery, clearer stale-data feedback and safer report configuration. Background processing now has fenced writes, credential-refresh protection, bounded reservation-based dispatch/cleanup and delayed-report catch-up while retaining five-minute account polling. No new environment variables, provider scopes or customer-side database changes are needed. The Better Auth connector was rebuilt but not published or installed into external consumers.
+
+CI fixture coverage and hosted HTTP/worker checks do not establish a fresh production login, every provider integration, notification receipt or conversion performance. No test notifications or customer writes were introduced by release verification.

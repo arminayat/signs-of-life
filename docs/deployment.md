@@ -127,7 +127,10 @@ Apply additive migrations 0005–0010, configure optional OAuth registration pai
 Completed account polls and daily-summary readiness checks repeat after five minutes. Daily checks are capped at the upcoming local daily time so a late-night report is not skipped. Keep the one-minute Cron for notification, webhook, import and recovery responsiveness; it publishes only due work. Publication uses bounded sendBatch calls for up to 100 distinct messages per batch, and consumers retain batches of three. Cloudflare still bills each message's operations individually. The longer polling interval reduces message volume; batching reduces publication overhead.
 
 Deploy jobs and web for this change. No migration, environment variable, API rollout or queue setting is required. Existing jobs adopt the interval after their next successful run. Cloudflare's minute tick can add up to a minute plus processing time; measure actual operation usage after rollout.
-## Reliability upgrade — implementation ready, rollout pending
+
+## Reliability upgrade — rollout procedure
+
+The maintained installation applied migrations 0012–0013, verified runtime ledger access and deployed the coordinated release on 2026-10-23. See [the release record](status.md#coordinated-reliability-and-landing-release--2026-10-23) for exact revisions and acceptance boundaries. The following procedure still applies to other installations.
 
 Apply migrations **0012_workflow_reliability** and **0013_account_overview** using `pnpm db:migrate`, then deploy compatible API/jobs/web builds together. The first indexes observation event provenance; the second indexes non-anonymous accounts by source and occurrence time. Both preserve records. Standard index creation can hold write locks; plan a maintenance window appropriate to table size. New API readiness stays unsuccessful on an older migration ledger. If migration and runtime roles differ, grant the runtime role read access to the ledger (replace `app_runtime` with the actual role):
 

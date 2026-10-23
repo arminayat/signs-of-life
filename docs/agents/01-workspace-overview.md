@@ -2,7 +2,7 @@
 
 ## Implemented today
 
-Scope: these guides describe the inspected working tree. The content-frame/footer UI, removal of PageHeader eyebrow text, Vite's 300ms watch polling and pnpm stop helper are implemented locally but remain in separate uncommitted changes. Their source files/configuration are not included in the knowledge-base commit; on a clean checkout, treat those details as planned/aspirational until the corresponding source changes land. Reconcile this note when they do.
+Scope: these guides describe the committed implementation, including the content-frame/footer UI, simplified page headers, Vite watch polling, pnpm stop helper, reliability safeguards and independent public landing page. All are included in the 2026-10-23 release source. Current deployment evidence and separate provider acceptance limits are recorded in docs/status.md.
 
 Signs of Life is a standalone AGPL-3.0-only pnpm workspace for account, billing and usage monitoring across an operator's products. It is not part of Kapier. Classification is WORKSPACE because pnpm-workspace.yaml includes apps/* and packages/*, with eight child manifests and source trees. None has a nested source workspace.
 
