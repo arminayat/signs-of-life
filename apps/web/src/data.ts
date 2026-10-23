@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import type {
   Snapshot,
   Project as ProjectRecord,
@@ -72,6 +77,25 @@ export function useConfig() {
     staleTime: 60_000,
   });
 }
+export async function invalidateActionQueries(
+  client: QueryClient,
+  result: Record<string, unknown>,
+  action: { path: string; body?: unknown },
+) {
+  const body = action.body as { connectionId?: unknown } | undefined;
+  const connectionId =
+    typeof result.id === "string"
+      ? result.id
+      : typeof body?.connectionId === "string"
+        ? body.connectionId
+        : action.path.match(/^\/(?:monitor\/)?connections\/([^/]+)$/)?.[1];
+  if (action.path.includes("/connections/") && connectionId) {
+    // Remove data from the prior grant even if its catalog is not currently
+    // mounted. An invalidated-but-cached catalog can still render old resources.
+    await client.resetQueries({ queryKey: ["catalog", connectionId] });
+  }
+  await client.invalidateQueries({ queryKey: ["dashboard"] });
+}
 export function useAction() {
   const client = useQueryClient();
   return useMutation({
@@ -84,9 +108,8 @@ export function useAction() {
       method?: string;
       body?: unknown;
     }) => api<Record<string, unknown>>(path, method, body),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: (result, action) =>
+      invalidateActionQueries(client, result, action),
   });
 }
 const messages: Record<string, string> = {

@@ -1,12 +1,19 @@
+import { requiredMigrationTimestamp } from "./schema-version";
+import { lockJob } from "./store-guards";
 import { sourceStore } from "./store-sources";
 import { and, count, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import * as t from "./schema";
 import type { MonitorStore } from "../../core/src/store";
-import { assert } from "../../core/src/model";
+import { AppError, assert } from "../../core/src/model";
 import { jobStore } from "./store-jobs";
 import { collectionStore } from "./store-collection";
-import { enqueueDelivery, fanout, workspaceLock } from "./store-delivery";
+import {
+  enqueueDelivery,
+  fanout,
+  workspaceLock,
+  deliveryEligibility,
+} from "./store-delivery";
 import { monitoringStore } from "./store-monitoring";
 import { overviewStore } from "./store-overview";
 export function postgresStore(db: Database): MonitorStore {
@@ -17,7 +24,15 @@ export function postgresStore(db: Database): MonitorStore {
     ...overviewStore(db),
     ...collectionStore(db),
     async health() {
-      await db.execute(sql`select 1`);
+      try {
+        const result = await db.execute(
+          sql`select exists(select 1 from signs_of_life_migrations.__drizzle_migrations where created_at = ${requiredMigrationTimestamp}) as ready`,
+        );
+        assert(result.rows[0]?.ready, "database_migration_required", 503);
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError("database_unavailable_or_unmigrated", 503);
+      }
     },
     async resolveIdentity(identity) {
       return db.transaction(async (tx) => {
@@ -372,6 +387,31 @@ export function postgresStore(db: Database): MonitorStore {
     async fanout(project, key, notification) {
       await db.transaction((tx) => fanout(tx, project, key, notification));
     },
+    async fanoutForJob(project, key, notification, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job, project.workspaceId);
+        const [current] = await tx
+          .select()
+          .from(t.projects)
+          .where(
+            and(
+              eq(t.projects.id, project.id),
+              eq(t.projects.workspaceId, project.workspaceId),
+            ),
+          )
+          .for("share");
+        if (current) await fanout(tx, current, key, notification);
+      });
+    },
+    async deliveryEligibility(workspaceId, projectId, destinationId, key) {
+      return deliveryEligibility(
+        db,
+        workspaceId,
+        projectId,
+        destinationId,
+        key,
+      );
+    },
     async enqueueDelivery(input) {
       await db.transaction((tx) => enqueueDelivery(tx, input));
     },
@@ -388,11 +428,19 @@ export function postgresStore(db: Database): MonitorStore {
           )
       )[0];
     },
-    async updateDelivery(id, patch) {
-      await db
-        .update(t.deliveries)
-        .set({ ...patch, updatedAt: new Date() })
-        .where(eq(t.deliveries.id, id));
+    async updateDelivery(id, patch, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job);
+        await tx
+          .update(t.deliveries)
+          .set({ ...patch, updatedAt: new Date() })
+          .where(
+            and(
+              eq(t.deliveries.id, id),
+              eq(t.deliveries.workspaceId, job.workspaceId),
+            ),
+          );
+      });
     },
     async disableBounced(providerId) {
       await db.transaction(async (tx) => {

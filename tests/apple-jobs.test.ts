@@ -62,10 +62,11 @@ async function setup() {
   });
   await f.store.updateProject(workspaceId, project.id, {}, [destinationId]);
   const connection = (await f.store.connection(workspaceId, id))!;
-  const [dailyJob] = await f.db
+  const [dailyRow] = await f.db
     .select()
     .from(t.jobs)
     .where(eq(t.jobs.key, `daily:${project.id}`));
+  const dailyJob = (await f.store.claim(dailyRow.id))!;
   const now = new Date("2026-09-11T12:00:00Z");
   return { ...f, workspaceId, project, source, connection, dailyJob, now };
 }

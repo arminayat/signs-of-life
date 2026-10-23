@@ -11,6 +11,8 @@ Create a GitHub OAuth app for this installation:
 - Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` on the API host.
 - Set `AUTH_PROVIDER=better-auth`, a random `AUTH_SECRET`, and `AUTH_SESSION_VERSION=1`.
 
+For local development, use a separate GitHub OAuth app with homepage `http://localhost:5173` and callback `http://localhost:5173/api/auth/callback/github`. Keep its credentials in the ignored local `.env`; the production app's callback does not authorize localhost.
+
 Better Auth uses Drizzle tables in the private `signs_of_life_identity` schema. Only GitHub login is enabled; there is no password login or production development bypass.
 
 ## Supabase Auth alternative
@@ -30,6 +32,8 @@ Register a Supabase OAuth integration. Configure **only** these scopes on that O
 - `database:read`
 
 Set the redirect URI to `PUBLIC_URL/api/connections/supabase/callback`. Set `SUPABASE_OAUTH_CLIENT_ID` and `SUPABASE_OAUTH_CLIENT_SECRET` on the API and job hosts. Supabase configures scopes at app registration; the old authorization URL `scope` parameter is deprecated.
+
+For local development, register `http://localhost:5173/api/connections/supabase/callback` as an additional callback URL or create a separate OAuth app. Use a distinct client secret in the ignored local `.env`, then restart `pnpm dev`. Keep the production callback and secret intact.
 
 Customers click Connect Supabase, consent, and select their project. Signs of Life probes the read-only endpoint before saving a source. If `auth.users` cannot be read through that endpoint, the connection is unsupported: do not work around this by requesting write access, API secrets or hooks.
 

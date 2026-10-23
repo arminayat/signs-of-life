@@ -80,8 +80,8 @@ function setup(kind: SourceKind) {
       Object.assign(state, patch);
     }),
     recordAccounts: vi.fn(),
-    updateConnection: vi.fn(),
-    monitoringSnapshot: vi.fn(
+    updateConnectionHealth: vi.fn(),
+    monitoringState: vi.fn(
       async (): Promise<{
         views: DashboardView[];
         states: MonitorState[];
@@ -132,16 +132,17 @@ describe("recurring collection cadence", () => {
         liveUntil: null,
         liveCursor: {},
       });
-      expect(f.store.updateConnection).toHaveBeenCalledWith(
+      expect(f.store.updateConnectionHealth).toHaveBeenCalledWith(
         f.source.connectionId,
         { status: "connected", lastError: null, lastSuccessAt: now },
+        job,
       );
     },
   );
 
   it("keeps aggregate-only report refreshes hourly", async () => {
     const f = setup("google-play");
-    f.store.monitoringSnapshot.mockResolvedValue({
+    f.store.monitoringState.mockResolvedValue({
       views: [
         {
           id: "view",
@@ -190,10 +191,12 @@ describe("recurring collection cadence", () => {
       },
       now.toISOString(),
     );
-    expect(f.store.recordAccounts).toHaveBeenLastCalledWith(f.source, [], {
-      at: now.toISOString(),
-      id: "00000000-0000-0000-0000-000000000000",
-    });
+    expect(f.store.recordAccounts).toHaveBeenLastCalledWith(
+      f.source,
+      [],
+      { at: now.toISOString(), id: "00000000-0000-0000-0000-000000000000" },
+      job,
+    );
   });
 });
 
@@ -220,7 +223,7 @@ describe("catch-up cadence", () => {
         offset: "200",
       });
       expect(f.state.historyDone).toBe(false);
-      expect(f.store.monitoringSnapshot).not.toHaveBeenCalled();
+      expect(f.store.monitoringState).not.toHaveBeenCalled();
     },
   );
 
@@ -259,8 +262,9 @@ describe("catch-up cadence", () => {
       f.source,
       expect.any(Array),
       { at: "2026-10-23T11:58:00.000Z", id: "page-20-user-499", catchup: true },
+      job,
     );
-    expect(f.store.updateConnection).not.toHaveBeenCalled();
+    expect(f.store.updateConnectionHealth).not.toHaveBeenCalled();
   });
 });
 
@@ -278,7 +282,7 @@ describe("daily summary cadence", () => {
       expect(await dailySummary(f.services, job, f.project.id, now)).toEqual(
         new Date(now.getTime() + 300_000),
       );
-      expect(f.store.monitoringSnapshot).toHaveBeenCalledTimes(ready ? 1 : 0);
+      expect(f.store.monitoringState).toHaveBeenCalledTimes(ready ? 1 : 0);
     },
   );
 
@@ -295,10 +299,10 @@ describe("daily summary cadence", () => {
       beforeSummary,
     );
     expect(due).toEqual(new Date("2026-10-23T21:59:00.000Z"));
-    expect(f.store.monitoringSnapshot).not.toHaveBeenCalled();
+    expect(f.store.monitoringState).not.toHaveBeenCalled();
 
     await dailySummary(f.services, job, f.project.id, due);
-    expect(f.store.monitoringSnapshot).toHaveBeenCalledTimes(1);
+    expect(f.store.monitoringState).toHaveBeenCalledTimes(1);
   });
 
   it("reaches a skipped spring DST summary time on the next five-minute check", async () => {
@@ -309,10 +313,10 @@ describe("daily summary cadence", () => {
 
     const due = await dailySummary(f.services, job, f.project.id, beforeJump);
     expect(due).toEqual(new Date("2026-03-29T01:03:00.000Z"));
-    expect(f.store.monitoringSnapshot).not.toHaveBeenCalled();
+    expect(f.store.monitoringState).not.toHaveBeenCalled();
 
     await dailySummary(f.services, job, f.project.id, due);
-    expect(f.store.monitoringSnapshot).toHaveBeenCalledTimes(1);
+    expect(f.store.monitoringState).toHaveBeenCalledTimes(1);
   });
 
   it.each(["2026-10-25T00:28:00.000Z", "2026-10-25T01:28:00.000Z"])(
@@ -338,10 +342,10 @@ describe("daily summary cadence", () => {
       expect(due!.getTime()).toBeLessThanOrEqual(
         beforeSummary.getTime() + 300_000,
       );
-      expect(f.store.monitoringSnapshot).not.toHaveBeenCalled();
+      expect(f.store.monitoringState).not.toHaveBeenCalled();
 
       await dailySummary(f.services, job, f.project.id, due);
-      expect(f.store.monitoringSnapshot).toHaveBeenCalledTimes(1);
+      expect(f.store.monitoringState).toHaveBeenCalledTimes(1);
     },
   );
 });

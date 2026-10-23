@@ -86,7 +86,10 @@ export const monitorObservations = appSchema.table(
       .notNull()
       .references(() => monitorEvents.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.sourceId, t.externalId] })],
+  (t) => [
+    primaryKey({ columns: [t.sourceId, t.externalId] }),
+    index("monitor_observations_event").on(t.eventId),
+  ],
 );
 export const monitorMetrics = appSchema.table(
   "monitor_metrics",

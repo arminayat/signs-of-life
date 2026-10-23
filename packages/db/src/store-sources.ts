@@ -28,30 +28,24 @@ export function sourceStore(
           .returning();
         if (isMonitorKind(source.kind)) {
           assert(environment, "source_environment_required");
-          await tx
-            .insert(m.monitorStates)
-            .values({
-              sourceId: source.id,
-              environment,
-              notifyAfter: source.baseline,
-              historyFrom: new Date(
-                source.baseline.getTime() - 365 * 86400_000,
-              ),
-              historyUntil: source.baseline,
-              liveFrom: source.baseline,
-            });
+          await tx.insert(m.monitorStates).values({
+            sourceId: source.id,
+            environment,
+            notifyAfter: source.baseline,
+            historyFrom: new Date(source.baseline.getTime() - 365 * 86400_000),
+            historyUntil: source.baseline,
+            liveFrom: source.baseline,
+          });
           for (const historical of [true, false])
-            await tx
-              .insert(t.jobs)
-              .values({
-                workspaceId: source.workspaceId,
-                key: `monitor:${source.id}:${historical}`,
-                payload: {
-                  kind: "monitor.collect",
-                  sourceId: source.id,
-                  historical,
-                },
-              });
+            await tx.insert(t.jobs).values({
+              workspaceId: source.workspaceId,
+              key: `monitor:${source.id}:${historical}`,
+              payload: {
+                kind: "monitor.collect",
+                sourceId: source.id,
+                historical,
+              },
+            });
         }
         if (source.kind === "supabase")
           await tx.insert(t.jobs).values({

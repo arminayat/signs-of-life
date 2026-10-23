@@ -2,6 +2,8 @@
 import { configuration } from "../../../packages/backend/src/config";
 import { compose } from "../../../packages/backend/src/compose";
 import { runOne } from "../../../packages/backend/src/runner";
+import { dispatchJobs } from "./dispatch";
+import { drainCleanup, reportJobDiagnostics } from "./maintenance";
 function runtime(env: JobBindings) {
   return compose(
     configuration(
@@ -14,16 +16,11 @@ export default {
   async scheduled(event, env) {
     const { services, close } = runtime(env);
     try {
+      await dispatchJobs(services.store, env.JOBS);
       if (new Date(event.scheduledTime).getUTCMinutes() === 0)
-        await services.store.cleanup();
-      const ids = await services.store.dueJobs(100);
-      if (ids.length) {
-        await env.JOBS.sendBatch(
-          ids.map((id) => ({ body: { id }, contentType: "json" })),
-        );
-        for (const id of ids) await services.store.markDispatched(id);
-      }
+        await drainCleanup(services.store);
     } finally {
+      await reportJobDiagnostics(services.store);
       await close();
     }
   },
@@ -45,6 +42,7 @@ export default {
           await runOne(services, body.id);
           message.ack();
         } catch {
+          console.warn(JSON.stringify({ event: "queue_execution_failed" }));
           message.retry({ delaySeconds: 30 });
         }
       }

@@ -6,8 +6,7 @@
 .project-shell .sidebar .workspace-label,
 .project-shell .sidebar .nav-label,
 .project-shell .sidebar .user-details,
-.project-shell .sidebar .avatar,
-.project-shell .sidebar-footer .text-link > svg:last-child {
+.project-shell .sidebar .avatar {
   display: none;
 }
 .project-shell .sidebar > nav {
@@ -21,23 +20,15 @@
   width: 100%;
   justify-items: center;
 }
-.project-shell .sidebar-footer .nav-label {
-  display: block;
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
 .project-shell .main-content {
-  margin-left: 310px;
+  margin-left: calc(310px + var(--content-gutter));
 }
 .project-sidebar {
   position: fixed;
   inset: 0 auto 0 76px;
   width: 234px;
   padding: 32px 18px;
-  border-right: 1px solid var(--border);
+  border-right: 0;
   background: var(--surface);
   overflow-y: auto;
   z-index: 19;
@@ -147,7 +138,9 @@
     margin: 0;
   }
   .project-shell .main-content {
-    margin: 0;
+    margin: var(--content-gutter);
+    margin-top: 0;
+    margin-bottom: 0;
   }
   .project-sidebar {
     position: static;
@@ -173,9 +166,6 @@
   .project-sidebar .nav-link {
     margin: 0;
     padding: 10px;
-  }
-  .project-shell .topbar {
-    margin-bottom: 20px;
   }
   .project-chart {
     padding: 16px;

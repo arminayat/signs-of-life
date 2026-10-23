@@ -3,6 +3,7 @@
 ## Implemented today
 
 - src/model.ts: domain types, provider ports and errors.
+- src/authentication.ts: platform identity/login/logout/request contract; implementations remain in adapters.
 - src/store.ts: persisted record types, safe read models and MonitorStore.
 - src/time.ts: shared date/time and account-label helpers.
 - package.json: private workspace package marker.

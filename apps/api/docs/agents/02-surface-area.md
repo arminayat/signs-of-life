@@ -4,7 +4,8 @@
 
 | Source / entry                  | Inputs and behavior                                                        | Effects                                                                                                       |
 | ------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| src/node.ts                     | process.env → nodeServices → Hono serve; HOST default 127.0.0.1, PORT 8787 | Long-lived DB pool, HTTP API; SIGINT/SIGTERM close server/pool then exit                                      |
+| src/node.ts                     | process.env → nodeServices → Hono serve; HOST default 127.0.0.1, PORT 8787 | Long-lived DB pool, HTTP API; SIGINT/SIGTERM invoke idempotent bounded request drain before pool closure      |
+| src/shutdown.ts                 | HTTP server and pool-close callback                                        | Waits for request completion; closes remaining HTTP connections at 25s and forces exit at 30s                 |
 | src/cloudflare.ts default fetch | Request, ApiBindings, execution context                                    | Overrides DATABASE_URL with env.DATABASE.connectionString; builds auth/API; ctx.waitUntil(close()) in finally |
 | wrangler.jsonc                  | Worker signs-of-life-api, nodejs_compat, Hyperdrive DATABASE               | Declares runtime deployment; no deployment occurs on import                                                   |
 

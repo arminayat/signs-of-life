@@ -1,0 +1,1 @@
+CREATE INDEX "monitor_observations_event" ON "signs_of_life"."monitor_observations" USING btree ("event_id");

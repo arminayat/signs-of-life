@@ -4,6 +4,7 @@
 
 Only same-origin /api is called by application fetch (credentials:same-origin). src/data.ts prefixes routes, JSON-encodes bodies and throws ApiError on non-OK responses. Server config exposes feature availability without credentials.
 Supabase and GitHub flows navigate to a server-provided authorization URL. Telegram verification opens a server-provided t.me link. Apple private key/vendor fields are posted to backend; catalog names/IDs come from backend, never direct provider API calls.
+The Supabase connection card describes account polling as about every five minutes, matching the backend's completed-poll recurrence. Cloudflare dispatch and provider work can add delay; this does not promise exact real-time delivery.
 Cloudflare src/cloudflare.ts forwards /api/* to API service binding and serves other requests through ASSETS with CSP/nosniff/referrer headers; Docker nginx implements equivalent forwarding. External links use noreferrer. No analytics SDK, monitored-email collection or provider secret storage is present in browser source.
 
 ## Implemented today — expanded monitoring
@@ -13,3 +14,4 @@ All twelve monitoring providers use backend credential/OAuth endpoints and the p
 Google Play setup posts service-account JSON and a reporting bucket; Lemon Squeezy posts an API key, environment and optional signing secret. Slack/Discord URLs are transient form values sent to /destinations, never returned by snapshots. Operators confirm a code received in the selected channel; browser code never calls Slack or Discord. Google Play rating views need an uppercase country filter.
 
 Implemented today: the Supabase connection card describes polling as about every five minutes. Dispatch and provider latency can add delay; it is not an exact real-time delivery guarantee.
+The separate public landing page links to the app origin for login rather than posting across origins. Its integration names describe implemented capabilities; setup methods and report timing remain provider-specific. All landing assets are local. No analytics SDK or external asset request is added.

@@ -1,38 +1,27 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { Button, Card, Checkbox } from "@heroui/react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button, Card } from "@heroui/react";
 import {
   ArrowRight,
   ArrowUpRight,
-  Cable,
   Check,
   Download,
   Plus,
   Users,
   Boxes,
-  Send,
-  Trash2,
 } from "lucide-react";
+import { useAction, useDashboard, type Dashboard } from "./data";
 import {
-  useAction,
-  useDashboard,
-  when,
-  type Dashboard,
-  type Project,
-} from "./data";
-import {
-  ConfirmDelete,
   Dialog,
   EmptyState,
   ErrorNotice,
+  RefreshNotice,
   Field,
   Loading,
-  Notice,
   PageHeader,
   Status,
 } from "./ui";
 import { ActivityList } from "./other-pages";
-import { SourceDialog } from "./source-dialog";
 export function ProjectsPage() {
   const query = useDashboard();
   const [open, setOpen] = useState(false);
@@ -60,6 +49,7 @@ export function ProjectsPage() {
           </Button>
         }
       />
+      <RefreshNotice error={query.error} dataUpdatedAt={query.dataUpdatedAt} />
       <div className="stat-grid">
         {[
           {

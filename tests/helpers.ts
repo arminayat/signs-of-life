@@ -1,3 +1,7 @@
+import { testDatabaseUrl } from "../scripts/test-database";
+import { eq } from "drizzle-orm";
+import { jobs } from "../packages/db/src/schema";
+import type { MonitorStore } from "../packages/core/src/store";
 import { migrateDatabase } from "../packages/db/src/migrations";
 import { database } from "../packages/db/src/client";
 import { postgresStore } from "../packages/db/src/store";
@@ -5,9 +9,27 @@ import { configuration } from "../packages/backend/src/config";
 import { secretBox } from "../packages/adapters/src/crypto";
 import type { ApiServices } from "../packages/backend/src/services";
 import type { Identity } from "../packages/core/src/model";
-export const testUrl =
-  process.env.TEST_DATABASE_URL ??
-  "postgres://signs_of_life:signs_of_life@127.0.0.1:5432/signs_of_life_test";
+export const testUrl = testDatabaseUrl();
+const fencedMethods = [
+  "recordAccounts",
+  "saveReport",
+  "saveMetric",
+  "saveMonitorPage",
+  "sourceError",
+  "monitorError",
+  "updateDelivery",
+  "removeMonitorInbox",
+  "delayProvider",
+] as const;
+type FencedMethod = (typeof fencedMethods)[number];
+type OptionalLast<T extends unknown[]> = T extends [...infer A, infer B]
+  ? [...A, B?]
+  : T;
+type FixtureStore = Omit<MonitorStore, FencedMethod> & {
+  [K in FencedMethod]: (
+    ...args: OptionalLast<Parameters<MonitorStore[K]>>
+  ) => ReturnType<MonitorStore[K]>;
+};
 export async function fixture(
   identity: Identity | null = {
     issuer: "test",
@@ -76,9 +98,37 @@ export async function fixture(
     },
   };
   const member = identity ? await store.resolveIdentity(identity) : undefined;
+  // Fixture setup may call persistence directly, but still obtains a real claim.
+  // Production services keep the strict store and cannot omit job ownership.
+  const testStore = new Proxy(store, {
+    get(target, property) {
+      const value = Reflect.get(target, property);
+      if (!(fencedMethods as readonly string[]).includes(String(property)))
+        return value;
+      return async (...args: unknown[]) => {
+        if (args.length === value.length && args.at(-1)) return value(...args);
+        if (!member)
+          throw new Error(
+            "A fixture identity is required for an automatic test claim",
+          );
+        const key = `fixture-lease:${crypto.randomUUID()}`;
+        await store.enqueue(member.workspaceId, key, {
+          kind: "daily",
+          projectId: crypto.randomUUID(),
+        });
+        const [row] = await db.select().from(jobs).where(eq(jobs.key, key));
+        const job = (await store.claim(row.id))!;
+        try {
+          return await value(...args, job);
+        } finally {
+          await store.finish(job);
+        }
+      };
+    },
+  }) as FixtureStore;
   return {
     db,
-    store,
+    store: testStore,
     services,
     member,
     async close() {

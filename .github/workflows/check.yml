@@ -37,6 +37,7 @@ jobs:
       - run: pnpm exec wrangler deploy --dry-run --config apps/api/wrangler.jsonc
       - run: pnpm exec wrangler deploy --dry-run --config apps/jobs/wrangler.jsonc
       - run: pnpm exec wrangler deploy --dry-run --config apps/web/wrangler.jsonc
+      - run: pnpm exec wrangler deploy --dry-run --config apps/web/wrangler.landing.jsonc
       - uses: actions/upload-artifact@v7.0.1
         if: failure()
         with:

@@ -11,13 +11,16 @@ export async function googlePlayReport(
   target: URL,
   headers: HeadersInit,
   budget: { remaining: number },
+  signal?: AbortSignal,
 ): Promise<string | null> {
   let response: Response;
   try {
     response = await http(target, {
       headers,
       redirect: "manual",
-      signal: AbortSignal.timeout(30_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
+        : AbortSignal.timeout(30_000),
     });
   } catch {
     throw failure("provider_unreachable");

@@ -2,17 +2,20 @@ import { createAuthEndpoint } from "better-auth/api";
 import type { BetterAuthPlugin } from "better-auth";
 import { z } from "zod";
 type User = { id: string; createdAt: Date | string; isAnonymous?: boolean };
+const timestamp = z.iso
+  .datetime()
+  .transform((value) => new Date(value).toISOString());
 const querySchema = z.object({
-  from: z.iso.datetime().default("1970-01-01T00:00:00.000Z"),
-  until: z.iso.datetime().optional(),
+  from: timestamp.default("1970-01-01T00:00:00.000Z"),
+  until: timestamp.optional(),
   after: z.string().max(4000).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(200),
 });
 const cursorSchema = z.object({
-  at: z.iso.datetime(),
+  at: timestamp,
   id: z.string().min(1).max(2000),
-  from: z.iso.datetime(),
-  until: z.iso.datetime(),
+  from: timestamp,
+  until: timestamp,
 });
 const encoder = new TextEncoder();
 async function digest(value: string) {

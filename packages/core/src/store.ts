@@ -194,16 +194,23 @@ export interface MonitorStore extends MonitoringStore {
     connectionId: string,
   ): Promise<Source[]>;
   deleteSource(workspaceId: string, id: string): Promise<void>;
-  sourceError(id: string, error: string): Promise<void>;
+  sourceError(id: string, error: string, job: Job): Promise<void>;
+  updateConnectionHealth(
+    id: string,
+    patch: Partial<Pick<Connection, "status" | "lastError" | "lastSuccessAt">>,
+    job: Job,
+  ): Promise<void>;
   recordAccounts(
     source: Source,
     events: AccountEvent[],
     cursor: Cursor,
+    job: Job,
   ): Promise<void>;
   saveReport(
     connection: Connection,
     date: string,
     metrics: DownloadMetric[] | null,
+    job: Job,
   ): Promise<void>;
   reportDeliveryKeys(
     workspaceId: string,
@@ -247,6 +254,18 @@ export interface MonitorStore extends MonitoringStore {
     key: string,
     notification: Notification,
   ): Promise<void>;
+  fanoutForJob(
+    project: Project,
+    key: string,
+    notification: Notification,
+    job: Job,
+  ): Promise<void>;
+  deliveryEligibility(
+    workspaceId: string,
+    projectId: string,
+    destinationId: string,
+    key: string,
+  ): Promise<boolean>;
   enqueueDelivery(
     input: Pick<
       Delivery,
@@ -262,6 +281,7 @@ export interface MonitorStore extends MonitoringStore {
         "status" | "attempts" | "providerId" | "lastError" | "startedAt"
       >
     >,
+    job: Job,
   ): Promise<void>;
   disableBounced(providerId: string): Promise<void>;
   enqueue(
@@ -271,10 +291,20 @@ export interface MonitorStore extends MonitoringStore {
     dueAt?: Date,
   ): Promise<void>;
   dueJobs(limit: number): Promise<string[]>;
+  reserveDueJobs(limit: number): Promise<string[]>;
+  releaseDispatch(ids: string[]): Promise<void>;
+  jobDiagnostics(): Promise<{
+    oldestDueAt: Date | null;
+    pending: number;
+    running: number;
+    expiredLeases: number;
+    failed: number;
+    oldestSourceSuccessAt: Date | null;
+  }>;
   markDispatched(id: string): Promise<void>;
   claim(id?: string): Promise<Job | undefined>;
   finish(job: Job, next?: Date, error?: string): Promise<void>;
   receipt(key: string): Promise<boolean>;
-  cleanup(): Promise<void>;
+  cleanup(): Promise<boolean>;
   deleteWorkspace(workspaceId: string): Promise<void>;
 }

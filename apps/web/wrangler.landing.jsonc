@@ -1,0 +1,8 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "signs-of-life-landing",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": false,
+  "routes": [{ "pattern": "soll.arminayat.dev", "custom_domain": true }],
+  "assets": { "directory": "./dist-landing" },
+}

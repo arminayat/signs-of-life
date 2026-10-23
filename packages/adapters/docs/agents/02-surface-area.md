@@ -6,7 +6,7 @@ Paths relative to packages/adapters; factories default to fetch unless a test HT
 
 | Source / exports                                                                  | Behavior and input                                                                            | External effects / persistence                             |
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| src/auth.ts: Authentication, betterAuthentication, supabaseAuthentication         | enabled, identity, login, logout, handle contract                                             | Auth provider calls, cookies, Better Auth database records |
+| src/auth.ts: AuthenticationConfig, betterAuthentication, supabaseAuthentication   | Implement core Authentication with enabled, identity, login, logout and handle                | Auth provider calls, cookies, Better Auth database records |
 | src/supabase-source.ts: supabaseSource, listSupabaseProjects, listSupabaseCatalog | Token/ref/cursor/until → normalized accounts; projects enriched by optional organization name | Read-only Management API requests; no local writes         |
 | authorizeSupabase, exchangeSupabase, emptyCursor                                  | PKCE URL; code or refresh grant → expiring tokens; zero-ID cursor                             | OAuth exchange only; caller encrypts/persists              |
 | src/apple-source.ts: appleSource, parseSalesReport                                | Key/vendor/date → metrics or null; TSV → per-app totals                                       | Signed GET and bounded gzip parsing; raw report discarded  |
@@ -20,3 +20,5 @@ No CLI, public HTTP routes or schedules exist in this child.
 ## Implemented today — expanded monitoring
 
 monitoring/index.ts monitorAdapter(kind,http,allowedHosts) returns a core ProviderAdapter. Each provider owns catalog/collection/report normalization; billing adapters verify webhooks. monitoring/oauth.ts owns registration-specific authorize/token/machine-token protocols. auth0-export.ts recovers dense timestamp search windows using minimal-field exports; public-http.ts validates connector DNS and pins Node HTTPS requests.
+
+PostHog implements the optional definition(credentials, resourceId, metricId) lookup so workers validate one selected insight without enumerating the catalog. Its metric call still checks the current query before execution. Google Play reads at most three monthly reports concurrently with a shared 32 MB budget and 180-second operation deadline; each request retains its 30-second timeout.

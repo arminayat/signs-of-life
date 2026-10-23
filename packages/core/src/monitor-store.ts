@@ -15,18 +15,23 @@ export interface MonitoringStore {
     sourceId: string,
     historical: boolean,
     error: string,
+    job: Job,
   ): Promise<void>;
   saveMonitorPage(
     source: Source,
     events: Observation[],
     patch: Partial<MonitorState>,
     historical: boolean,
-    lease?: Pick<Job, "id" | "leaseToken">,
+    lease: Job,
   ): Promise<void>;
   monitorPreferences(
     sourceId: string,
     notifications: EventKind[],
   ): Promise<void>;
+  monitoringState(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<{ states: MonitorState[]; views: DashboardView[] }>;
   monitoringSnapshot(
     workspaceId: string,
     projectId: string,
@@ -53,6 +58,7 @@ export interface MonitoringStore {
     id: string,
     result: MetricResult | null,
     error: string | null,
+    job: Job,
   ): Promise<void>;
   retainedSeries(
     sourceId: string,
@@ -71,7 +77,7 @@ export interface MonitoringStore {
   ): Promise<boolean>;
   releaseMonitorRefresh(connectionId: string, lease: Date): Promise<void>;
   providerBudget(connectionId: string, seconds: number): Promise<boolean>;
-  delayProvider(connectionId: string, seconds: number): Promise<void>;
+  delayProvider(connectionId: string, seconds: number, job: Job): Promise<void>;
   webhookConnection(id: string): Promise<Connection | undefined>;
   acceptMonitorWebhook(
     connection: Connection,
@@ -81,5 +87,5 @@ export interface MonitoringStore {
     workspaceId: string,
     id: string,
   ): Promise<{ connectionId: string; observations: Observation[] } | undefined>;
-  removeMonitorInbox(workspaceId: string, id: string): Promise<void>;
+  removeMonitorInbox(workspaceId: string, id: string, job: Job): Promise<void>;
 }

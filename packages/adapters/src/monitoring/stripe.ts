@@ -26,6 +26,14 @@ const stripeHeaders = (c: Credentials) => ({
   ...headers(c),
   "Stripe-Version": "2024-06-20",
 });
+const eventTypes = new Set([
+  "charge.succeeded",
+  "invoice.paid",
+  "invoice.payment_failed",
+  "refund.created",
+  "refund.updated",
+  "customer.subscription.deleted",
+]);
 
 function normalize(
   type: string,
@@ -138,6 +146,17 @@ export function stripe(http: Http): ProviderAdapter {
       c,
     );
   }
+  async function normalizeEvent(
+    c: Credentials,
+    event: Record<string, unknown>,
+  ): Promise<Observation[]> {
+    const type = string(event.type);
+    if (!eventTypes.has(type)) return [];
+    const row = object(object(event.data).object);
+    if (type === "charge.succeeded" && row.invoice === undefined)
+      return lookup(c, string(row.id));
+    return normalize(type, row, c, event.created);
+  }
   return {
     lookup,
     async catalog(c) {
@@ -176,20 +195,22 @@ export function stripe(http: Http): ProviderAdapter {
         : ["events"];
       const stage = input.cursor.stage || stages[0];
       assert(stages.includes(stage), "provider_cursor_invalid");
+      const target = url("https://api.stripe.com", `/v1/${stage}`, {
+        limit: stage === "events" ? 25 : 100,
+        starting_after: input.cursor.after,
+        ...(!["invoices", "subscriptions"].includes(stage)
+          ? { "created[gte]": Math.floor(Date.parse(input.from) / 1000) }
+          : {}),
+        "created[lte]": Math.ceil(Date.parse(input.until) / 1000),
+        ...(stage === "subscriptions" ? { status: "canceled" } : {}),
+      });
+      if (stage === "events")
+        for (const type of eventTypes)
+          target.searchParams.append("types[]", type);
       const result = object(
-        await request(
-          http,
-          url("https://api.stripe.com", `/v1/${stage}`, {
-            limit: stage === "events" ? 25 : 100,
-            starting_after: input.cursor.after,
-            ...(!["invoices", "subscriptions"].includes(stage)
-              ? { "created[gte]": Math.floor(Date.parse(input.from) / 1000) }
-              : {}),
-            "created[lte]": Math.ceil(Date.parse(input.until) / 1000),
-            ...(stage === "subscriptions" ? { status: "canceled" } : {}),
-          }),
-          { headers: stripeHeaders(input.credentials) },
-        ),
+        await request(http, target, {
+          headers: stripeHeaders(input.credentials),
+        }),
       );
       const rows = array(result.data).map(object);
       const events: Observation[] = [];
@@ -199,18 +220,7 @@ export function stripe(http: Http): ProviderAdapter {
         const batch = await Promise.all(
           rows.slice(offset, offset + 5).map(async (row) =>
             stage === "events"
-              ? row.type === "charge.succeeded" &&
-                object(object(row.data).object).invoice === undefined
-                ? lookup(
-                    input.credentials,
-                    string(object(object(row.data).object).id),
-                  )
-                : normalize(
-                    string(row.type),
-                    object(object(row.data).object),
-                    input.credentials,
-                    row.created,
-                  )
+              ? normalizeEvent(input.credentials, row)
               : normalize(
                   (
                     {
@@ -245,17 +255,7 @@ export function stripe(http: Http): ProviderAdapter {
     },
     async webhook(c, raw, h) {
       const event = await verifyWebhook("stripe", c, raw, h);
-      if (
-        event.type === "charge.succeeded" &&
-        object(object(event.data).object).invoice === undefined
-      )
-        return lookup(c, string(object(object(event.data).object).id));
-      return normalize(
-        string(event.type),
-        object(object(event.data).object),
-        c,
-        event.created,
-      );
+      return normalizeEvent(c, event);
     },
   };
 }

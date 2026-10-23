@@ -15,6 +15,10 @@ async function deliver(
   deliveryId: string,
 ): Promise<Date | undefined> {
   const { store } = services;
+  const updateDelivery = (
+    id: string,
+    patch: Parameters<typeof store.updateDelivery>[1],
+  ) => store.updateDelivery(id, patch, job);
   const delivery = await store.delivery(job.workspaceId, deliveryId);
   if (
     !delivery ||
@@ -33,39 +37,30 @@ async function deliver(
     (!destination.verified && delivery.purpose !== "verification") ||
     (delivery.projectId && !project?.enabled)
   ) {
-    await store.updateDelivery(delivery.id, { status: "cancelled" });
+    await updateDelivery(delivery.id, {
+      status: delivery.status === "sending" ? "uncertain" : "cancelled",
+    });
     return;
   }
   if (project) {
-    const snapshot = await store.snapshot(job.workspaceId);
-    const stillLinked = snapshot.projectDestinations.some(
-      (link) =>
-        link.projectId === project.id && link.destinationId === destination.id,
-    );
-    const sourceId = /^(?:account|daily|monitor):([^:]+):/.exec(
-      delivery.key,
-    )?.[1];
-    const sourcesActive = snapshot.sources
-      .filter(
-        (source) =>
-          source.projectId === project.id &&
-          (!sourceId || source.id === sourceId),
-      )
-      .some((source) =>
-        snapshot.connections.some(
-          (connection) =>
-            connection.id === source.connectionId && connection.active,
-        ),
-      );
-    if (!stillLinked || !sourcesActive) {
-      await store.updateDelivery(delivery.id, { status: "cancelled" });
+    if (
+      !(await store.deliveryEligibility(
+        job.workspaceId,
+        project.id,
+        destination.id,
+        delivery.key,
+      ))
+    ) {
+      await updateDelivery(delivery.id, {
+        status: delivery.status === "sending" ? "uncertain" : "cancelled",
+      });
       return;
     }
   }
   const channel = services.channels[destination.kind];
   if (!channel) {
-    await store.updateDelivery(delivery.id, {
-      status: "failed",
+    await updateDelivery(delivery.id, {
+      status: delivery.status === "sending" ? "uncertain" : "failed",
       lastError: "channel_not_configured",
     });
     return;
@@ -78,7 +73,7 @@ async function deliver(
       services.config.EMAIL_PROVIDER === "resend"
     )
   ) {
-    await store.updateDelivery(delivery.id, {
+    await updateDelivery(delivery.id, {
       status: "uncertain",
       lastError: "worker_interrupted_during_send",
     });
@@ -91,7 +86,7 @@ async function deliver(
     Date.now() - (delivery.startedAt ?? delivery.createdAt).getTime() >
       23 * 3600_000
   ) {
-    await store.updateDelivery(delivery.id, {
+    await updateDelivery(delivery.id, {
       status: "uncertain",
       lastError: "provider_idempotency_window_expired",
     });
@@ -100,8 +95,8 @@ async function deliver(
   let address = destination.address;
   if (destination.kind === "slack" || destination.kind === "discord") {
     if (!destination.secret) {
-      await store.updateDelivery(delivery.id, {
-        status: "failed",
+      await updateDelivery(delivery.id, {
+        status: delivery.status === "sending" ? "uncertain" : "failed",
         lastError: "destination_credentials_missing",
       });
       return;
@@ -112,7 +107,14 @@ async function deliver(
     );
     address = credentials.url;
   }
-  await store.updateDelivery(delivery.id, {
+  if (delivery.attempts >= 8) {
+    await updateDelivery(delivery.id, {
+      status: delivery.status === "sending" ? "uncertain" : "failed",
+      lastError: "provider_attempt_limit_reached",
+    });
+    return;
+  }
+  await updateDelivery(delivery.id, {
     status: "sending",
     startedAt: delivery.startedAt ?? new Date(),
     attempts: delivery.attempts + 1,
@@ -130,7 +132,7 @@ async function deliver(
       : `${services.config.PUBLIC_URL}/api/unsubscribe/${unsubscribeToken}`,
   );
   if (result.status === "retry" && delivery.attempts + 1 < 8) {
-    await store.updateDelivery(delivery.id, {
+    await updateDelivery(delivery.id, {
       status:
         result.mayHaveDelivered || delivery.status === "sending"
           ? "sending"
@@ -139,13 +141,15 @@ async function deliver(
     });
     return new Date(Date.now() + result.afterSeconds * 1000);
   }
-  await store.updateDelivery(delivery.id, {
+  await updateDelivery(delivery.id, {
     status:
       result.status === "retry"
         ? result.mayHaveDelivered || delivery.status === "sending"
           ? "uncertain"
           : "failed"
-        : result.status,
+        : result.status === "failed" && delivery.status === "sending"
+          ? "uncertain"
+          : result.status,
     lastError: result.status === "accepted" ? null : result.code,
     providerId:
       result.status === "accepted" ? (result.providerId ?? null) : null,
@@ -194,68 +198,85 @@ export async function runOne(
       error instanceof AppError ? error.code : "job_execution_failed";
     // A newer worker owns both the checkpoint and its health report.
     if (code === "job_lease_lost") return true;
-    const payload = job.payload;
-    if (
-      payload.kind === "supabase.collect" ||
-      payload.kind === "monitor.collect"
-    )
-      await services.store.sourceError(payload.sourceId, code);
-    if (payload.kind === "monitor.collect")
-      await services.store.monitorError(
-        payload.sourceId,
-        payload.historical,
-        code,
-      );
-    if (payload.kind === "apple.collect")
-      await services.store.updateConnection(payload.connectionId, {
-        status: "error",
-        lastError: code,
-      });
-    const retryAfter = (error as ProviderFailure).retryAfterSeconds;
-    let connectionId: string | undefined;
-    if (payload.kind === "monitor.collect")
-      connectionId = (
-        await services.store.source(job.workspaceId, payload.sourceId)
-      )?.connectionId;
-    if (payload.kind === "monitor.metric") {
-      const metric = await services.store.metricRequest(
-        job.workspaceId,
-        payload.metricId,
-      );
-      if (metric)
+    try {
+      const payload = job.payload;
+      if (
+        payload.kind === "supabase.collect" ||
+        payload.kind === "monitor.collect"
+      )
+        await services.store.sourceError(payload.sourceId, code, job);
+      if (payload.kind === "monitor.collect")
+        await services.store.monitorError(
+          payload.sourceId,
+          payload.historical,
+          code,
+          job,
+        );
+      if (payload.kind === "apple.collect")
+        await services.store.updateConnectionHealth(
+          payload.connectionId,
+          {
+            status: "error",
+            lastError: code,
+          },
+          job,
+        );
+      const retryAfter = (error as ProviderFailure).retryAfterSeconds;
+      let connectionId: string | undefined;
+      if (payload.kind === "monitor.collect")
         connectionId = (
-          await services.store.source(job.workspaceId, metric.sourceId)
+          await services.store.source(job.workspaceId, payload.sourceId)
         )?.connectionId;
+      if (payload.kind === "monitor.metric") {
+        const metric = await services.store.metricRequest(
+          job.workspaceId,
+          payload.metricId,
+        );
+        if (metric)
+          connectionId = (
+            await services.store.source(job.workspaceId, metric.sourceId)
+          )?.connectionId;
+      }
+      if (connectionId && retryAfter)
+        await services.store.delayProvider(connectionId, retryAfter, job);
+      if (connectionId && code === "provider_reconnect_required")
+        await services.store.updateConnectionHealth(
+          connectionId,
+          {
+            status: "reconnect_required",
+            lastError: code,
+          },
+          job,
+        );
+      const recurring = payload.kind !== "deliver";
+      const terminal = code === "connection_not_found_or_disconnected";
+      const next =
+        !terminal && (recurring || job.attempts < 8)
+          ? new Date(
+              Date.now() +
+                Math.max(
+                  retryAfter || 0,
+                  Math.min(3600, 15 * 2 ** Math.min(job.attempts, 8)),
+                ) *
+                  1000,
+            )
+          : undefined;
+      await services.store.finish(job, next, code);
+      console.warn(
+        JSON.stringify({
+          event: "job_failed",
+          jobId: job.id,
+          kind: payload.kind,
+          code,
+        }),
+      );
+    } catch (persistenceError) {
+      if (
+        !(persistenceError instanceof AppError) ||
+        persistenceError.code !== "job_lease_lost"
+      )
+        throw persistenceError;
     }
-    if (connectionId && retryAfter)
-      await services.store.delayProvider(connectionId, retryAfter);
-    if (connectionId && code === "provider_reconnect_required")
-      await services.store.updateConnection(connectionId, {
-        status: "reconnect_required",
-        lastError: code,
-      });
-    const recurring = payload.kind !== "deliver";
-    const terminal = code === "connection_not_found_or_disconnected";
-    const next =
-      !terminal && (recurring || job.attempts < 8)
-        ? new Date(
-            Date.now() +
-              Math.max(
-                retryAfter || 0,
-                Math.min(3600, 15 * 2 ** Math.min(job.attempts, 8)),
-              ) *
-                1000,
-          )
-        : undefined;
-    await services.store.finish(job, next, code);
-    console.warn(
-      JSON.stringify({
-        event: "job_failed",
-        jobId: job.id,
-        kind: payload.kind,
-        code,
-      }),
-    );
   }
   return true;
 }

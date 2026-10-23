@@ -9,14 +9,18 @@ Commands from repository root:
 | Command                                    | Implemented effect                                                                           |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | pnpm dev; dev:api; dev:web; dev:worker     | Concurrent full stack or individual tsx/Vite process; Node scripts read .env                 |
+| pnpm dev:landing; build:landing           | Standalone static landing dev server on 5174 or production assets in apps/web/dist-landing |
 | pnpm stop                                  | scripts/stop-dev.mjs discovers this checkout's listeners/process ancestors and sends SIGTERM |
-| pnpm typecheck; test; build                | TypeScript, Vitest, Vite production assets                                                   |
+| pnpm typecheck; test; build                | TypeScript, Vitest, connector build plus dashboard and landing Vite production assets       |
 | pnpm check                                 | typecheck → test → build; excludes browser tests, formatting and Worker dry runs             |
+| pnpm check:isolated                        | Temporary local PostgreSQL cluster → check → stop/remove; requires server tools on PATH      |
 | pnpm test:e2e                              | Playwright desktop/mobile fixture tests; separate from check                                 |
 | pnpm db:generate; db:migrate; auth:migrate | Generate Drizzle SQL; apply migrations; explicit identity mapping                            |
 | pnpm format; format:check                  | Prettier write/check                                                                         |
 
-Tests live at root. Vitest database tests use real PostgreSQL with fake provider interfaces; the rename suite requires temporary database creation. Playwright fixture guard requires NODE_ENV=test and database name ending in _test. CI independently runs check, e2e, Worker dry runs and Docker readiness/routing.
+Tests live at root. The test runner validates a loopback PostgreSQL URL ending in _test and checks connectivity before Vitest. The isolated bootstrap handles cancellation during setup and test execution, then closes/removes its cluster. Database tests use real PostgreSQL with fake provider interfaces; the rename suite requires temporary database creation. Playwright fixture guard requires NODE_ENV=test and database name ending in _test. CI independently runs check, e2e, Worker dry runs and Docker readiness/routing.
+
+The public landing page is a second static build within apps/web, not a ninth workspace child. It uses existing Vite with no new runtime dependencies, a separate assets-only Wrangler config and an ignored dist-landing output. Keep its hosting independent of application auth/API and run its own Wrangler dry run before release. Detailed ownership and source structure live in the Web child KB; deployment procedures are in docs/deployment.md.
 
 ## Planned/aspirational — shared maintenance rules
 
@@ -28,3 +32,5 @@ For a new child, first establish actual manifest/source and responsibility, then
 ## Implemented today — connector build and acceptance
 
 Root pnpm build/check includes the independently packaged Better Auth connector build. Its prepack cleans only its generated dist directory, then emits ESM/declarations and includes LICENSE. Run pnpm test (not bare vitest) to load test environment variables. Every new provider needs a real connection/read smoke test before live-verified status; automated fixture evidence is recorded separately in docs/status.md.
+
+The supplied Compose API service checks schema-aware `/api/ready` and allows 35 seconds to stop, covering the Node API's 30-second bounded shutdown. Other process hosts should provide equivalent termination grace.

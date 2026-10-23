@@ -148,7 +148,12 @@ export function googlePlay(http: Http): ProviderAdapter {
       ];
       const values = new Map<string, string | null>();
       const budget = { remaining: 32_000_000 };
-      for (const month of months) {
+      const cancellation = new AbortController();
+      const signal = AbortSignal.any([
+        cancellation.signal,
+        AbortSignal.timeout(180_000),
+      ]);
+      async function readMonth(month: string) {
         const type = rating ? "ratings" : "installs";
         const reportName = `stats/${type}/${type}_${name}_${month}_country.csv`;
         const target = url(
@@ -161,8 +166,9 @@ export function googlePlay(http: Http): ProviderAdapter {
           target,
           headers(input.credentials),
           budget,
+          signal,
         );
-        if (text === null) continue;
+        if (text === null) return;
         const parsed = parseGooglePlayReport(
           text,
           name,
@@ -172,6 +178,23 @@ export function googlePlay(http: Http): ProviderAdapter {
           country,
         );
         for (const [day, value] of parsed) values.set(day, value);
+      }
+      // A 366-day query can span 13 monthly files. Three bounded readers keep
+      // even slow successful reports within the worker's five-minute lease.
+      const remaining = [...months];
+      try {
+        await Promise.all(
+          Array.from({ length: Math.min(3, months.length) }, async () => {
+            for (;;) {
+              signal.throwIfAborted();
+              const month = remaining.shift();
+              if (!month) return;
+              await readMonth(month);
+            }
+          }),
+        );
+      } finally {
+        cancellation.abort();
       }
       result.points = dates.map((label) => ({
         label,

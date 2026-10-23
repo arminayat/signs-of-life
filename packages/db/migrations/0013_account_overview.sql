@@ -1,0 +1,1 @@
+CREATE INDEX "event_source_occurred" ON "signs_of_life"."events" USING btree ("source_id","occurred_at") WHERE "signs_of_life"."events"."anonymous" = false;

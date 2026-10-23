@@ -1,0 +1,196 @@
+/* Hallmark · source-specific product examples, no live customer data */
+.product-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.preview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.preview-project {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.preview-project > svg {
+  color: var(--accent);
+}
+.preview-project strong {
+  display: block;
+  font-weight: 550;
+}
+.preview-project p,
+.preview-period,
+.preview-footer {
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.preview-period {
+  border-left: 1px solid var(--border);
+  padding-left: var(--space-lg);
+}
+.preview-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+.growth-preview {
+  padding: var(--space-lg);
+  border-right: 1px solid var(--border);
+}
+.metric-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-md);
+}
+.metric-heading h2 {
+  font-size: var(--text-body);
+  letter-spacing: -0.02em;
+}
+.metric-heading p {
+  color: var(--muted);
+  font-size: var(--text-small);
+  margin-top: var(--space-2xs);
+}
+.metric-total {
+  font-size: 3rem;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.bar-chart {
+  height: 138px;
+  display: flex;
+  align-items: end;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.bar-chart span {
+  flex: 1;
+  background: var(--chart-soft);
+  border-radius: 4px 4px 0 0;
+}
+.bar-chart span:last-child {
+  background: var(--chart);
+}
+.chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+.preview-updates {
+  padding: var(--space-lg);
+}
+.preview-updates h2 {
+  font-size: var(--text-body);
+  letter-spacing: -0.02em;
+}
+.preview-updates ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-sm) 0 0;
+}
+.preview-updates li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-block: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+.preview-updates li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.preview-updates li > svg {
+  color: var(--accent);
+}
+.preview-updates strong {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: 550;
+}
+.preview-updates p {
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.preview-footer {
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+.message-preview {
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: 16px;
+  padding: var(--space-xl);
+}
+.message-channel {
+  color: var(--muted);
+  font-size: var(--text-small);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.message-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+.message-author img {
+  width: 32px;
+  height: 32px;
+}
+.message-author strong {
+  font-size: var(--text-body);
+  font-weight: 550;
+}
+.message-content {
+  margin-top: var(--space-lg);
+}
+.message-content h3 {
+  font-size: var(--text-title);
+}
+.message-content p {
+  margin-top: var(--space-xs);
+  color: var(--muted);
+}
+.message-content time {
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+.message-preview figcaption {
+  padding-top: var(--space-lg);
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+@media (max-width: 600px) {
+  .preview-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .growth-preview {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-period {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .preview-header,
+  .growth-preview,
+  .preview-updates {
+    padding: var(--space-lg);
+  }
+  .message-preview {
+    padding: var(--space-lg);
+  }
+}

@@ -16,6 +16,7 @@ import {
   Dialog,
   EmptyState,
   ErrorNotice,
+  RefreshNotice,
   Field,
   Loading,
   Notice,
@@ -34,7 +35,6 @@ export function DestinationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="THE UPDATES COME TO YOU"
         title="Your signals. Your space."
         description="Choose where you want to hear about the little wins."
         action={
@@ -44,6 +44,7 @@ export function DestinationsPage() {
           </Button>
         }
       />
+      <RefreshNotice error={query.error} dataUpdatedAt={query.dataUpdatedAt} />
       <ErrorNotice error={action.error} />
       {message && (
         <div role="status" className="notice mb-5">

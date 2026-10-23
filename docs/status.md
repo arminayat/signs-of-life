@@ -61,9 +61,17 @@ This document distinguishes implemented behavior, automated verification and liv
 - Hyperdrive `signs-of-life-db` connects to the direct database endpoint with verified TLS, a ten-connection limit and query caching disabled.
 - API, jobs and web Workers were deployed from `9a19f2f`; the web Worker owns the `sol.arminayat.dev` custom domain. The public page serves Signs of Life, `/api/health` and database-backed `/api/ready` return HTTP 200 with that revision, and `/api/config` reports GitHub login enabled. Starting login returns a GitHub authorization URL and a session cookie; the callback has not been completed with a real account.
 
+## Supabase monitoring setup — 2026-09-24
+
+- Published the installation-owned `Signs of Life` OAuth app in the `sol` organization with only `organizations:read`, `projects:read` and `database:read` permissions.
+- Registered `https://sol.arminayat.dev/api/connections/supabase/callback` and stored the client ID and secret in both `signs-of-life-api` and `signs-of-life-jobs` Worker secret stores.
+- The live `/api/config` now reports `sources.supabase=true`; `/api/ready` passes on revision `9a19f2f`. No application code deployment or database migration was needed.
+- The same OAuth app also allows the localhost callback. A distinct local client secret is stored only in the ignored `.env`; after restarting the local stack, `/api/config` reports `sources.supabase=true` and `/api/ready` returns HTTP 200.
+- Customer authorization, project selection and real account collection have not yet been verified. Registration alone does not grant access to a monitored project.
+
 ## External acceptance still required
 
-- Hosted GitHub login acceptance and an installation-owned Supabase monitoring OAuth registration.
+- A completed Supabase monitoring authorization/project connection. Hosted GitHub login was verified separately in the 2026-10-04 acceptance attempt below.
 - A Telegram bot/webhook and received test notification.
 - Resend sender verification and a received email notification.
 - A real App Store Sales and Trends report matched to the app's reporting dashboard.
@@ -122,6 +130,59 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 - **0/10 new providers are live-verified.** Each still needs a real isolated connection/catalog/read and relevant webhook/new-account/report acceptance; fixtures do not establish provider plan access or receipt at a notification destination.
 - RevenueCat's API has no project-wide historical billing-event feed: native charts provide history, while events require webhooks and missed event payloads cannot be reconstructed from aggregates. Other provider retention limits and incomplete deleted-user history remain explicit. No invented Stripe MRR/churn, email matching or aggregate grand total is included.
 
+## Customer-source acceptance attempt — 2026-10-04
+
+- Hosted GitHub sign-in and creation of the requested customer monitoring project succeeded. Provider authorization and source selection did not complete: browser permissions subsequently denied access to Supabase and the hosted dashboard. A retry after explicit user authorization still reported saved site restrictions for both domains. No source or provider metric is accepted as verified by this attempt.
+- The customer's existing database was checked read-only before the browser block. Aggregate counts are retained only in the ignored local acceptance report, not in Git. Existing mobile/web integration configuration was inspected without changing customer files or persisting credentials.
+- `pnpm check` passes on the current local checkout: TypeScript, all 132 tests in 18 files, connector build and web production build. The initial sandboxed attempt failed because loopback database/SMTP access was denied; rerunning after the user changed execution permissions passed. `git diff --check` passes. The existing bundle-size advisory remains.
+- Browser metric comparisons, real provider catalogs/reports and collection progress remain unverified. No application code, migration, deployment, webhook, notification destination or customer authentication configuration was changed. Existing unrelated local edits were preserved.
+
+## Repository reliability implementation — 2026-10-22
+
+### Implemented today — local working tree
+
+All concrete fixes and efficiency/workflow improvements from [the repository review](repository-review-2026-10-22.md) are implemented across the eight children. This includes required worker write fencing and consistent transaction locks, credential refresh comparison, delayed-summary catch-up, delivery uncertainty preservation, provider normalization/quality fixes, bounded maintenance and batched dispatch/ingestion, schema-aware readiness, safer/faster dashboard behavior and disposable test-database tooling. Existing unrelated local edits are preserved; this is not a committed or deployed release.
+
+### Automated verification — local only
+
+- `pnpm check:isolated` passed against a fresh disposable PostgreSQL 18 cluster: TypeScript, **287 tests across 34 files**, Better Auth connector build and web production build. The cluster was stopped and removed. Tests include stale claims, disconnect/cache races, reverse-order cross-source aliases, concurrent health/page writes, project deletion, delayed summary dates, route log redaction, provider quality, connector timestamps, Google Play cancellation and cached React rendering.
+- Bootstrap failure and SIGTERM probes propagated failure and removed their temporary clusters. An unavailable database produces one preflight message without credential disclosure. Test URL guards reject nonlocal/non-test endpoints and query-string overrides.
+- API, jobs and web Worker bundle dry runs passed. Wrangler logs were redirected into task-local temporary files to avoid the sandbox's global log-directory restriction. No deployment commands without `--dry-run` were run.
+- `docker compose config --quiet`, `git diff --check`, relative-link checks across 102 documents and the application-source size check passed; no maintained application source exceeds 500 lines. Docker containers were not run.
+- Initial web JavaScript changed from **556.65 kB / 172.50 kB gzip** to **456.75 kB / 145.10 kB gzip** through lazy routes. Shared CSS is 429.48 kB / 42.53 kB gzip, plus the small overview stylesheet. These are build sizes, not browser performance measurements.
+- A synthetic 50,000-event account-range query used 24 shared blocks / 0.147 ms after the new partial index versus 770 blocks / 6.45 ms before. This supports the index locally; production latency was not measured.
+
+### Required rollout and unverified acceptance
+
+Apply additive migrations **0012–0013** before coordinated API/jobs/web rollout. Index creation may hold write locks. If migration and runtime roles differ, grant runtime USAGE on the private migration schema and SELECT on its ledger as documented in [deployment.md](deployment.md). No new application environment variables or provider scopes are needed. The supplied Compose API allows 35 seconds for the bounded shutdown and checks schema-aware readiness; other hosts should allow at least 30 seconds. Rebuild/distribute the Better Auth connector for installed consumers; no package publication was performed.
+
+No browser tests, CI run, production migration/deployment, live provider calls or recipient acceptance were performed. Previous dated hosted records remain historical; this local implementation does not update those claims.
+
+## Implementation double-check — 2026-10-23
+
+Independent Spec and Standards reviews of the uncommitted implementation identified three follow-up gaps, now corrected:
+
+- Scheduled 30/365-day metric refreshes now use the owned project's calendar, matching UI/API ranges and cache keys around UTC midnight and DST. Four collector regressions reproduced the earlier mismatch before the fix and pass afterward.
+- Isolated test setup registers interruption handlers before creating resources and uses cancellable-between-steps asynchronous commands. A controlled setup-stage SIGTERM regression reproduced the earlier default process exit and now verifies server-stop and temporary-cluster cleanup.
+- Workspace, project and verification routes share loading/error boundaries. Rejected lazy imports show reload guidance while surrounding navigation remains mounted; navigating to another path clears the failed state. Typecheck/build verify integration; browser interaction acceptance remains unperformed.
+
+Both reviewers confirmed their findings closed, with no remaining concrete checklist gaps. Final `pnpm check:isolated` passed **292 tests across 36 files**, TypeScript, connector packaging build and web production build. All three Worker dry runs and `git diff --check` passed. Initial JavaScript is **457.33 kB / 146.28 kB gzip**, still about 18% smaller uncompressed than the pre-review build. The disposable cluster was removed; test logs remain ignored artifacts. This double-check adds no migration, environment variable or provider permission beyond the previously documented rollout. No browser, deployment, production-database or live-provider verification was performed.
+
+## Public landing page — 2026-10-23
+
+### Implemented and deployed
+
+- Added the static landing page within `apps/web/landing`, its independent Vite build and assets-only Cloudflare config. It inherits the dashboard theme, introduces the product with explicitly labeled sample data, groups implemented integrations and directs signup to the existing GitHub login at `https://sol.arminayat.dev/`. Native FAQ disclosures and all links work without JavaScript. No analytics, form endpoint, environment variable or migration was added.
+- Deployed only `signs-of-life-landing`, version `653d6c0b-f888-4ab5-b2c0-2b726b017fd2`, at `https://soll.arminayat.dev/`. No dashboard/API/jobs or database release occurred; unrelated local reliability changes remain outside this deployment. Source changes remain in the local working tree.
+
+### Verification and limits
+
+- `pnpm check` first stopped on the unavailable test database. `pnpm check:isolated` then passed TypeScript, **292 tests in 36 files**, connector build, dashboard build and landing build using a disposable PostgreSQL 18 cluster, which was removed afterward.
+- Landing Wrangler dry run, scoped Prettier and `git diff --check` passed. CI now includes the landing dry run, but CI was not run for this uncommitted change.
+- Hallmark static lint reported **0 FAIL, 0 REFLEX, 0 WARN**. An independent source review identified chart contrast, notification format and heading-level issues; all were corrected. Token contrast checks and HTML checks covered anchor targets, unique IDs, app destinations, sample labels and the absence of JavaScript. No browser rendering, screenshots or interactive visual acceptance was performed, per repository instructions.
+- HTTPS returned 200. Hosted HTML, CSS and favicon matched local build bytes; CSP, nosniff and referrer headers were present. Unknown paths and `/api/session` on the landing host returned 404. The existing application and public GitHub destination returned 200. This verifies serving and links, not new-user completion, provider connections, notification receipt or conversion performance.
+- The current hosted config was checked read-only for copy: GitHub login and Slack/Discord enabled, email/Telegram disabled, all additional monitoring providers enabled through credentials. These settings are a point-in-time observation; integration setup and acceptance remain separate.
+
 ## Queue efficiency release — 2026-10-23
 
 ### Implemented and deployed
@@ -137,3 +198,7 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 - Cloudflare deployment readback confirms 100% traffic and the jobs revision. Binding metadata matches the pre-release snapshot except intended jobs BUILD_REVISION/SOURCE_URL updates. The one-minute Cron is unchanged. HTTPS health/readiness returned 200; hosted HTML, JavaScript, CSS and favicon matched release-build hashes, including the updated five-minute setup text.
 - At 15:00 UTC, queue backlog was zero. A bounded live tail captured one successful queue invocation with no exceptions, warning logs or error logs. This does not establish every provider's health or recipient delivery.
 - Existing recurring jobs adopt the new interval on their next successful run. Daily usage reduction has not yet been measured over a representative post-release interval.
+
+## Latest release preparation — 2026-10-23
+
+The reliability implementation and public landing source have been reconciled with the five-minute polling release on main. Local verification passes TypeScript, **313 tests across 38 files**, connector/dashboard/landing builds, all four Worker dry runs and `git diff --check`. A scan of all release source files found no secrets. The scheduled-handler tests now exercise reservation-based dispatch while preserving empty-scan and failed-publication connection cleanup coverage. No local browser tests were run. Deployment evidence follows separately once rollout is complete.

@@ -19,7 +19,7 @@
 | Root manifests/configs                                                       | package.json, pnpm-workspace.yaml, pnpm-lock.yaml, tsconfig.json, drizzle.config.ts, vitest.config.ts, playwright.config.ts, .env.example |
 | README.md, CONTRIBUTING.md, SECURITY.md, LICENSE                             | Product entry, contribution/security policy and licensing                                                                                 |
 
-Ignored node_modules/, artifacts/, output/, test-results/, playwright-report/, .wrangler/ and built dist/ content is not maintained source. .env/.dev.vars/local JSONC files can contain secrets; do not ingest their values into memory.
+Ignored node_modules/, artifacts/, output/, test-results/, playwright-report/, .wrangler/ and built dist/ or dist-landing/ content is not maintained source. The landing entry and its separate build/deploy configs remain within the existing apps/web child. .env/.dev.vars/local JSONC files can contain secrets; do not ingest their values into memory.
 Top-level src/, a separate infra/IaC project, docs/agents/README.md, a shared design-system package, Redis and customer instrumentation packages are not present.
 
 ## Planned/aspirational — structure updates

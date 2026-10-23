@@ -3,6 +3,7 @@
 ## Implemented today
 
 - src/node.ts: Node Hono server.
+- src/shutdown.ts: bounded, idempotent HTTP drain before database teardown.
 - src/cloudflare.ts: Worker fetch bridge.
 - wrangler.jsonc: checked-in deployment config.
 - worker-configuration.d.ts: binding declarations referenced by entrypoint.

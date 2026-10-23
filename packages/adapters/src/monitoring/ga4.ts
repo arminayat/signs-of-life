@@ -1,6 +1,7 @@
 import { assert } from "../../../core/src/model";
 import type {
   MetricDefinition,
+  MetricResult,
   ProviderAdapter,
   Resource,
 } from "../../../core/src/monitoring";
@@ -15,7 +16,23 @@ import {
   string,
   unavailable,
   url,
+  type ObjectValue,
 } from "./http";
+function reportQuality(result: MetricResult, ...responses: ObjectValue[]) {
+  const limited = responses.some((response) => {
+    const metadata = object(response.metadata ?? {});
+    return (
+      metadata.subjectToThresholding === true ||
+      metadata.dataLossFromOtherRow === true ||
+      array(metadata.samplingMetadatas ?? []).length > 0
+    );
+  });
+  if (limited) {
+    result.status = "partial";
+    result.reason =
+      "GA4 reports thresholding, sampling or an other-row data limitation.";
+  }
+}
 const metrics = [
   "activeUsers",
   "newUsers",
@@ -184,8 +201,7 @@ export function ga4(http: Http): ProviderAdapter {
             value: decimal(object(array(row.metricValues)[index]).value),
           };
         });
-        if (object(table.metadata ?? {}).samplingMetadatas)
-          result.status = "partial";
+        reportQuality(result, data, table);
         return result;
       }
       if (query.metric === "retention") {
@@ -223,13 +239,7 @@ export function ga4(http: Http): ProviderAdapter {
           "provider_report_truncated",
           502,
         );
-        const metadata = object(data.metadata ?? {});
-        if (
-          metadata.subjectToThresholding ||
-          metadata.dataLossFromOtherRow ||
-          metadata.samplingMetadatas
-        )
-          result.status = "partial";
+        reportQuality(result, data);
         result.columns = rows.map(
           (r) => `Day ${string(object(array(r.dimensionValues)[0]).value)}`,
         );
@@ -286,19 +296,7 @@ export function ga4(http: Http): ProviderAdapter {
         result.summary = decimal(
           object(array(object(totalRows[0]).metricValues)[0]).value,
         );
-      const metadata = {
-        ...object(data.metadata ?? {}),
-        ...object(totals.metadata ?? {}),
-      };
-      if (
-        metadata.subjectToThresholding ||
-        metadata.dataLossFromOtherRow ||
-        metadata.samplingMetadatas
-      ) {
-        result.status = "partial";
-        result.reason =
-          "GA4 reports thresholding, sampling or an other-row data limitation.";
-      }
+      reportQuality(result, data, totals);
       return result;
     },
   };

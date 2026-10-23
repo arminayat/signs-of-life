@@ -9,6 +9,7 @@ import {
   type MonitorKind,
 } from "../../core/src/monitoring";
 import { providerDefinition } from "../../core/src/provider-registry";
+import { validateCalendarRange } from "../../core/src/time";
 import { hashToken, randomToken } from "../../adapters/src/crypto";
 import {
   authorizationUrl,
@@ -35,11 +36,8 @@ export const metricQuerySchema = z
     filters: filtersSchema.default({}),
   })
   .refine(
-    (q) =>
-      q.from <= q.to &&
-      Date.parse(q.from) >= Date.now() - 366 * 86400_000 &&
-      Date.parse(q.to) <= Date.now(),
-    "Choose a range within the last 12 months.",
+    (q) => q.from <= q.to,
+    "The end date must not precede the start date.",
   );
 export async function sourceFor(
   services: Services,
@@ -305,6 +303,15 @@ export function monitoringRoutes(services: Services) {
     );
     return c.json(await store.monitoringSnapshot(c.get("workspaceId"), id));
   });
+  app.get("/projects/:id/monitoring/state", async (c) => {
+    const id = idSchema.parse(c.req.param("id"));
+    assert(
+      await store.project(c.get("workspaceId"), id),
+      "project_not_found",
+      404,
+    );
+    return c.json(await store.monitoringState(c.get("workspaceId"), id));
+  });
   app.put("/projects/:id/views", async (c) => {
     const views = z
       .array(
@@ -368,6 +375,12 @@ export function monitoringRoutes(services: Services) {
       429,
     );
     const query = metricQuerySchema.parse(await c.req.json());
+    const project = await store.project(c.get("workspaceId"), source.projectId);
+    assert(project, "project_not_found", 404);
+    assert(
+      validateCalendarRange(query, new Date(), project.timezone),
+      "invalid_date_range",
+    );
     query.filters = Object.fromEntries(
       Object.entries(query.filters).sort(([a], [b]) => a.localeCompare(b)),
     );

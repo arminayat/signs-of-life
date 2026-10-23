@@ -15,6 +15,10 @@
 Root docs/integrations.md specifies operator registration scopes (organizations:read, projects:read, database:read) and callbacks. These external settings are required policy, not verified by the OAuth URL builder.
 Mocks: tests/helpers.ts substitutes auth, sources, reports and channels; tests/adapters.test.ts injects HTTP; tests/smtp.test.ts runs a local SMTP server. A fake acceptance or HTTP success does not prove live receipt.
 
+## Implemented today — Apple authentication constraint
+
+Checked against Apple's documentation on 2026-09-26: the documented App Store Connect API authentication uses a downloaded private API key to sign JWTs; no delegated OAuth consent flow for Sales and Trends is documented. The current apple-source.ts follows that key-based model. Sign-in and source authorization should not be conflated. Sources: [Apple API key setup](https://developer.apple.com/help/app-store-connect/get-started/app-store-connect-api) and [JWT authentication](https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests). Recheck Apple documentation before promising a keyless integration.
+
 ## Implemented today — monitoring protocols
 
 monitoring/ owns the twelve providers; credentials and real permission boundaries are enumerated in core/provider-registry.ts and root docs/monitoring-integrations.md. Stripe API reads are pinned to 2024-06-20; invoice linkage is hydrated for modern event objects. Provider native calculations are preserved; PostHog period unique values and GA4 period results use separate requests. No raw profile/payload persistence is exposed by adapter outputs.

@@ -2,9 +2,11 @@
 
 The dashboard is static React/Vite using HeroUI and Tailwind. It calls a same-origin Hono API under `/api`. The API handles authentication, tenant authorization and configuration. Separate workers collect sources and deliver notifications.
 
+The public landing page is static HTML/CSS owned by `apps/web/landing` with a separate Vite build and assets-only Cloudflare deployment. It links from `soll.arminayat.dev` to the existing application at `sol.arminayat.dev`, without loading application code or making session/API requests. Its labeled product examples contain no customer data. This deployment does not require backend, provider, database or auth changes.
+
 ## Provider interfaces
 
-`MonitorStore`, `Authentication`, `AccountSource`, `ReportSource`, `Channel`, `EmailTransport` and `SecretBox` contain the replaceable contracts. The composition layer selects implementations. No Cloudflare bindings appear inside application use cases. No browser gets a database credential.
+`MonitorStore`, `Authentication`, `AccountSource`, `ReportSource`, `Channel`, `EmailTransport` and `SecretBox` contain the replaceable contracts. Core owns these contracts, including Authentication; the auth adapter owns its minimal configuration and identity-persistence dependency. The composition layer selects implementations. No Cloudflare bindings appear inside application use cases. No browser gets a database credential.
 
 PostgreSQL is the v1 database engine. Drizzle schemas and migrations live in `signs_of_life` and `signs_of_life_identity`, outside Supabase's default exposed Data API schemas. Hosting can change between Supabase, Neon and an ordinary PostgreSQL server without changing application queries. Other SQL engines require a persistence adapter and their own migrations, not just a connection-string change.
 
@@ -12,9 +14,9 @@ Better Auth is the default identity provider and stores its records through Driz
 
 ## Durable execution
 
-PostgreSQL is the source of truth for jobs, schedules, attempts, leases and deliveries. Jobs are claimed with a transaction and `FOR UPDATE SKIP LOCKED`. Lease tokens fence completion, and expired claims are recoverable. Recurring collectors reschedule themselves.
+PostgreSQL is the source of truth for jobs, schedules, attempts, leases and deliveries. Jobs are claimed with a transaction and `FOR UPDATE SKIP LOCKED`. Lease tokens fence completion and worker result/error/health/delivery writes; expired claims are recoverable. Source writes also lock active connections and source records in their transaction. Recurring collectors reschedule themselves. Node HTTP shutdown drains requests before closing the database, with bounded forced shutdown.
 
-Cloudflare Cron dispatches due job IDs through Cloudflare Queues. Dispatch stamps expire, so a failed or dead-lettered message can be recovered from the database. The Node worker claims the same persisted jobs directly. Queue infrastructure is not required for self-hosting.
+Cloudflare Cron reserves oldest-due job IDs atomically and publishes batches through Cloudflare Queues, capped at ten batches of 100 within a 45-second loop budget. Dispatch stamps expire, so a failed or dead-lettered message can be recovered from the database. The Node worker claims the same persisted jobs directly. Queue infrastructure is not required for self-hosting.
 
 Account events, cursor progress and delivery jobs are written in one transaction. Source event keys and per-destination delivery keys prevent repeated notifications during overlap reads or duplicate queue dispatches. Collection uses bounded requests and catch-up cursors.
 
@@ -46,6 +48,8 @@ The Add a source dialog uses the same cached catalog, showing only distinct orga
 
 Entering a project collapses workspace navigation to an icon rail and opens a second sidebar with Overview, Sources and Notifications. Each view has a persistent URL under `/projects/:id`; the project root redirects to Overview. On small screens both navigation groups become compact rows. Leaving a project restores the full workspace sidebar.
 
+The main content area has a green-tinted surface inside a bordered, rounded panel with a white outer frame. The breadcrumb sits above the panel; a version label sourced from the root package at build time, an icon-only GitHub source link, and the theme toggle sit together below it on the right. Workspace and project sidebars remain outside the panel without an extra divider against it; the icon rail keeps its divider from the project sidebar. The corners tighten on small screens, with corresponding dark-theme colors.
+
 Overview reads `/api/projects/:id/overview`, which authorizes the project against the signed-in workspace and aggregates the requested 7/30/90/365-day or custom range directly in PostgreSQL (30 days by default). Supabase counts exclude anonymous accounts and group observed events by the project's timezone. They represent accounts observed since source connection, not total registered users or historical imports. App Store charts use Apple's reporting dates and stored corrected metrics. Missing reports remain absent, reported zeros remain zero, and days with only some source reports are marked partial. Dates before collection and dates after the latest successful account collection remain blank unless an event was observed. Charts include daily-value tables.
 
 Notifications shows project-scoped recent deliveries, notification pause/resume, and a modal for preferences and destination routing. Its dashboard request scopes deliveries before the latest-100 limit, so other projects cannot crowd out this project's history. Workspace-level dashboard behavior is unchanged. Sources retains source connection/removal controls. The original project views required no migration; the monitoring expansion requires migrations 0005–0010 and compatible API/jobs/web revisions.
@@ -71,3 +75,11 @@ Provider coverage and operator procedures are in [Monitoring integrations](monit
 Google Play feeds existing native report queries with delayed Pacific-date install/uninstall and country-specific rating data. Lemon Squeezy feeds normalized billing events from signed webhooks and bounded API reconciliation; initial subscription invoices do not duplicate order payments. Neither adds instrumentation or customer writes.
 
 Slack and Discord use the existing Channel/delivery pipeline. Migration 0011 adds an encrypted destination secret; snapshots omit it and redact verification messages. Channel setup sends a single-use code, and authenticated confirmation proves access before notifications can be delivered. Apply the migration before coordinated API/jobs/web rollout; no new environment variables are needed. Setup, limitations and live acceptance remain separate in integration/deployment documentation.
+
+## Implemented today — reliability and efficiency
+
+Cleanup runs after dispatch, in bounded table batches, with errors isolated from execution. Cloudflare drains at most ten maintenance batches hourly; Node revisits pending maintenance after one minute and otherwise hourly. Monetary pruning only updates populated values. Migrations 0012–0013 index observation provenance and non-anonymous source/date account reads. Readiness requires the current migration ledger version; process health alone does not prove schema compatibility.
+
+Daily monitoring summaries revisit 14 eligible dates after the notification baseline and skip already-announced view/date keys. Missing delayed reports remain unavailable until a later pass; historical import remains silent. GA4 preserves quality limits from all responses, and WorkOS coverage distinguishes retention loss from ordinary pagination.
+
+Dashboard ranges and scheduled report refreshes use project-local calendar dates in UI/API/jobs while providers retain their own reporting date semantics. Saved layouts must load before configuration opens. Cached data shows failed-refresh warnings with its last successful update. Completed/error metric results poll every five minutes, pending results every 15 seconds; status polls a lightweight state/views endpoint. Routes load lazily with loading/error boundaries and reload recovery, and reconnect resets the affected resource catalog.

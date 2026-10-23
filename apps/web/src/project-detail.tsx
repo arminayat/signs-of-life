@@ -1,3 +1,5 @@
+import { RouteContent } from "./route-content";
+import { lazy } from "react";
 import {
   Link,
   NavLink,
@@ -14,10 +16,18 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useDashboard } from "./data";
-import { EmptyState, ErrorNotice, Loading, Status } from "./ui";
-import { ProjectSources } from "./project-sources";
-import { ProjectNotifications } from "./project-notifications";
-import { ProjectOverview } from "./monitor-overview";
+import { EmptyState, ErrorNotice, Loading, Status, RefreshNotice } from "./ui";
+const ProjectSources = lazy(() =>
+  import("./project-sources").then((m) => ({ default: m.ProjectSources })),
+);
+const ProjectNotifications = lazy(() =>
+  import("./project-notifications").then((m) => ({
+    default: m.ProjectNotifications,
+  })),
+);
+const ProjectOverview = lazy(() =>
+  import("./monitor-overview").then((m) => ({ default: m.ProjectOverview })),
+);
 const views = [
   { path: "overview", label: "Overview", icon: ChartNoAxesCombined },
   { path: "sources", label: "Sources", icon: Cable },
@@ -71,34 +81,36 @@ export function ProjectPage() {
           ))}
         </nav>
       </aside>
-      <ErrorNotice error={query.error} />
-      <Routes>
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route
-          path="overview"
-          element={<ProjectOverview key={id} project={project} data={data} />}
-        />
-        <Route
-          path="sources"
-          element={<ProjectSources key={id} project={project} data={data} />}
-        />
-        <Route
-          path="notifications"
-          element={
-            <ProjectNotifications key={id} project={project} data={data} />
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <EmptyState
-              icon={<Boxes />}
-              title="View not found"
-              description="Choose a project view from the sidebar."
-            />
-          }
-        />
-      </Routes>
+      <RefreshNotice error={query.error} dataUpdatedAt={query.dataUpdatedAt} />
+      <RouteContent>
+        <Routes>
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route
+            path="overview"
+            element={<ProjectOverview key={id} project={project} data={data} />}
+          />
+          <Route
+            path="sources"
+            element={<ProjectSources key={id} project={project} data={data} />}
+          />
+          <Route
+            path="notifications"
+            element={
+              <ProjectNotifications key={id} project={project} data={data} />
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <EmptyState
+                icon={<Boxes />}
+                title="View not found"
+                description="Choose a project view from the sidebar."
+              />
+            }
+          />
+        </Routes>
+      </RouteContent>
     </>
   );
 }

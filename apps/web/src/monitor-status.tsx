@@ -3,7 +3,6 @@ import { Checkbox } from "@heroui/react";
 import type {
   DashboardView,
   MonitorState,
-  StoredMetric,
 } from "../../../packages/core/src/monitoring";
 import { isMonitorKind } from "../../../packages/core/src/monitoring";
 import { providerDefinition } from "../../../packages/core/src/provider-registry";
@@ -12,12 +11,11 @@ import { ErrorNotice } from "./ui";
 export type Monitoring = {
   states: MonitorState[];
   views: DashboardView[];
-  metrics: Omit<StoredMetric, "updatedAt">[];
 };
 export function useMonitoring(projectId: string) {
   return useQuery({
     queryKey: ["dashboard", projectId, "monitoring"],
-    queryFn: () => api<Monitoring>(`/projects/${projectId}/monitoring`),
+    queryFn: () => api<Monitoring>(`/projects/${projectId}/monitoring/state`),
     refetchInterval: 10_000,
   });
 }

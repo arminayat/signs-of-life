@@ -29,3 +29,5 @@ schema-monitoring.ts adds monitor_states (fixed baseline, environment, independe
 Migration 0011 adds nullable destinations.secret for encrypted Slack/Discord webhook URLs. Existing email/Telegram records remain null. Public snapshots omit this ciphertext and unsubscribe hashes; every verification delivery body is replaced with channel-neutral text. Existing challenges and jobs handle channel verification without new tables.
 
 An authenticated payment-webhook observation can revisit an existing invoice event: its occurrence timestamp advances monotonically and its existing notified claim still allows at most one alert. Ordinary duplicate observations remain ignored. This marker is carried in normalized inbox JSON and requires no additional column.
+
+Migrations 0012–0013 add the provenance `event_id` lookup index and the nonanonymous-account `(source_id, occurred_at)` range index. They add no fields or data backfill. Account observation insertion and destination delivery/job creation are batched in the same transaction. Runtime readiness checks the latest required migration ledger entry; it does not read the filesystem.

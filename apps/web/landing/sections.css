@@ -1,0 +1,221 @@
+/* Hallmark · integration directory, delivery example and conversion sections */
+.section {
+  padding-block: var(--space-4xl);
+}
+.section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: var(--space-xl);
+  align-items: end;
+  margin-bottom: var(--space-2xl);
+}
+.section-heading > p {
+  color: var(--muted);
+  max-width: 40ch;
+  font-size: var(--text-lead);
+}
+.integration-list {
+  display: grid;
+}
+.integration-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+  gap: var(--space-xl);
+  padding-block: var(--space-xl);
+  border-top: 1px solid var(--border);
+}
+.integration-row:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.integration-row h3 {
+  margin-bottom: var(--space-xs);
+}
+.integration-row p {
+  color: var(--muted);
+  max-width: 29ch;
+}
+.provider-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-content: start;
+}
+.provider-list li {
+  background: var(--surface-secondary);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-md);
+}
+.section-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+.delivery-section {
+  background: var(--night);
+  color: var(--night-ink);
+  padding-block: var(--space-3xl);
+}
+.delivery-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-xl);
+}
+.delivery-copy p {
+  margin-top: var(--space-lg);
+  color: var(--night-muted);
+  max-width: 37ch;
+  font-size: var(--text-lead);
+}
+.channel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+.channel-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.delivery-section .text-link {
+  color: var(--night-ink);
+  margin-top: var(--space-lg);
+}
+.delivery-section :focus-visible {
+  outline-color: var(--signal);
+}
+.delivery-section .text-link:hover {
+  color: var(--signal);
+}
+.principles {
+  padding-block: var(--space-4xl) var(--space-2xl);
+}
+.principles-heading {
+  max-width: 21ch;
+}
+.principle-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-xl);
+  row-gap: var(--space-xl);
+  margin-top: var(--space-2xl);
+}
+.principle-list article {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-lg);
+}
+.principle-list h3 {
+  font-size: 1.25rem;
+}
+.principle-list p {
+  margin-top: var(--space-sm);
+  color: var(--muted);
+  max-width: 43ch;
+}
+.questions {
+  padding-block: var(--space-2xl) var(--space-4xl);
+}
+.questions-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-xl);
+}
+.questions h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+.faq-list {
+  border-top: 1px solid var(--border);
+}
+details {
+  border-bottom: 1px solid var(--border);
+}
+summary {
+  cursor: pointer;
+  position: relative;
+  padding: var(--space-lg) var(--space-xl) var(--space-lg) 0;
+  font-weight: 550;
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::after {
+  content: "+";
+  position: absolute;
+  right: var(--space-xs);
+  top: var(--space-lg);
+  font-size: var(--text-title);
+  font-weight: 400;
+  line-height: 1;
+}
+details[open] summary::after {
+  content: "−";
+}
+summary:hover {
+  color: var(--accent);
+}
+details p {
+  color: var(--muted);
+  padding-bottom: var(--space-lg);
+  max-width: 56ch;
+}
+details p a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.closing {
+  margin-inline: var(--space-lg);
+  border-radius: var(--radius);
+  padding-block: var(--space-2xl);
+  background: var(--field);
+  color: var(--foreground);
+}
+.closing-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+}
+.closing h2 {
+  max-width: 17ch;
+}
+.closing p {
+  margin-top: var(--space-md);
+  color: var(--field-ink);
+}
+.closing-action {
+  flex-shrink: 0;
+}
+.closing-action p {
+  font-size: var(--text-small);
+  margin-top: var(--space-sm);
+}
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  padding-block: var(--space-xl);
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

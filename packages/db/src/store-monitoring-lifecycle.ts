@@ -4,6 +4,7 @@ import type { MonitoringStore } from "../../core/src/monitor-store";
 import { isMonitorKind } from "../../core/src/monitoring";
 import * as m from "./schema-monitoring";
 import * as t from "./schema";
+import { lockJob, lockConnection } from "./store-guards";
 import { jobStore } from "./store-jobs";
 export function monitoringLifecycleStore(
   db: Database,
@@ -95,16 +96,20 @@ export function monitoringLifecycleStore(
         .returning();
       return rows.length > 0;
     },
-    async delayProvider(connectionId, seconds) {
-      const availableAt = new Date(Date.now() + seconds * 1000);
-      await db
-        .insert(m.providerBudgets)
-        .values({ connectionId, availableAt })
-        .onConflictDoUpdate({
-          target: m.providerBudgets.connectionId,
-          set: { availableAt },
-          setWhere: sql`${m.providerBudgets.availableAt} < ${availableAt}`,
-        });
+    async delayProvider(connectionId, seconds, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job);
+        if (!(await lockConnection(tx, connectionId, job.workspaceId))) return;
+        const availableAt = new Date(Date.now() + seconds * 1000);
+        await tx
+          .insert(m.providerBudgets)
+          .values({ connectionId, availableAt })
+          .onConflictDoUpdate({
+            target: m.providerBudgets.connectionId,
+            set: { availableAt },
+            setWhere: sql`${m.providerBudgets.availableAt} < ${availableAt}`,
+          });
+      });
     },
     async webhookConnection(id) {
       return (
@@ -157,15 +162,18 @@ export function monitoringLifecycleStore(
           )
       )[0];
     },
-    async removeMonitorInbox(workspaceId, id) {
-      await db
-        .delete(m.monitorInbox)
-        .where(
-          and(
-            eq(m.monitorInbox.workspaceId, workspaceId),
-            eq(m.monitorInbox.id, id),
-          ),
-        );
+    async removeMonitorInbox(workspaceId, id, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job, workspaceId);
+        await tx
+          .delete(m.monitorInbox)
+          .where(
+            and(
+              eq(m.monitorInbox.workspaceId, workspaceId),
+              eq(m.monitorInbox.id, id),
+            ),
+          );
+      });
     },
   };
 }

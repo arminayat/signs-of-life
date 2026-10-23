@@ -6,6 +6,7 @@
     sans-serif;
 }
 :root {
+  --page-background: #fff;
   --background: #f7f8f5;
   --foreground: #202b25;
   --surface: #fff;
@@ -15,9 +16,12 @@
   --accent-foreground: #fff;
   --border: #e3e7e0;
   --radius: 0.75rem;
+  --content-gutter: 20px;
+  --content-radius: 24px;
   color-scheme: light;
 }
 :root.dark {
+  --page-background: #101611;
   --background: #141a16;
   --foreground: #e8ede7;
   --surface: #1c241e;
@@ -30,7 +34,7 @@
 }
 body {
   margin: 0;
-  background: var(--background);
+  background: var(--page-background);
   color: var(--foreground);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -99,6 +103,9 @@ select {
   flex-direction: column;
   z-index: 20;
 }
+.shell:not(.project-shell) .sidebar {
+  border-right: 0;
+}
 .workspace-label {
   margin: 34px 10px 14px;
   text-transform: uppercase;
@@ -150,19 +157,16 @@ select {
   font-weight: 600;
 }
 .main-content {
-  margin-left: 230px;
+  min-height: calc(100dvh - 96px);
+  margin: var(--content-gutter);
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: calc(230px + var(--content-gutter));
   padding: 28px 44px 64px;
   max-width: 1680px;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 20px;
-  margin-bottom: 35px;
-  color: var(--muted);
-  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--content-radius);
+  background: var(--background);
 }
 .page-header {
   display: flex;
@@ -181,14 +185,6 @@ h2 {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.4px;
-}
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  font-weight: 650;
-  color: var(--muted);
-  margin-bottom: 10px;
 }
 .muted {
   color: var(--muted);

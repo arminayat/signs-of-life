@@ -9,7 +9,7 @@ import {
 } from "@heroui/react";
 import { AlertCircle, ArrowUpRight, Radio } from "lucide-react";
 import { useId, type ReactNode, type HTMLInputTypeAttribute } from "react";
-import { errorMessage } from "./data";
+import { errorMessage, when } from "./data";
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="brand">
@@ -117,6 +117,26 @@ export function ErrorNotice({ error }: { error: unknown }) {
 export function Notice({ children }: { children: ReactNode }) {
   return <div className="notice">{children}</div>;
 }
+export function RefreshNotice({
+  error,
+  dataUpdatedAt,
+}: {
+  error: unknown;
+  dataUpdatedAt: number;
+}) {
+  if (!error) return null;
+  return (
+    <div className="mb-5">
+      <ErrorNotice error={error} />
+      {dataUpdatedAt > 0 && (
+        <p className="muted text-xs mt-2" role="status">
+          Showing saved data. Last updated{" "}
+          {when(new Date(dataUpdatedAt).toISOString())}.
+        </p>
+      )}
+    </div>
+  );
+}
 export function Status({ value }: { value: string }) {
   const good = [
     "connected",
@@ -136,12 +156,10 @@ export function Status({ value }: { value: string }) {
   );
 }
 export function PageHeader({
-  eyebrow,
   title,
   description,
   action,
 }: {
-  eyebrow?: string;
   title: string;
   description: string;
   action?: ReactNode;
@@ -149,7 +167,6 @@ export function PageHeader({
   return (
     <header className="page-header">
       <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
         <p className="muted mt-2 max-w-xl">{description}</p>
       </div>

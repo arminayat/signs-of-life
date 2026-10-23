@@ -1,0 +1,105 @@
+/* Hallmark · responsive composition and reduced-motion fallback */
+@media (max-width: 800px) {
+  .site-nav {
+    gap: var(--space-lg);
+  }
+  .site-nav .nav-detail {
+    display: none;
+  }
+  .hero {
+    margin-inline: var(--space-xs);
+    padding-top: var(--space-xl);
+  }
+  .hero-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+  .hero .container {
+    width: calc(100% - var(--gutter) * 2);
+  }
+  .hero-intro > p {
+    max-width: 40ch;
+  }
+  .section {
+    padding-block: var(--space-3xl);
+  }
+  .section-heading,
+  .delivery-layout,
+  .questions-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+  .section-heading {
+    margin-bottom: var(--space-xl);
+  }
+  .integration-row {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+  .principles {
+    padding-block: var(--space-3xl) var(--space-xl);
+  }
+  .principle-list {
+    gap: var(--space-xl);
+    margin-top: var(--space-xl);
+  }
+  .questions {
+    padding-block: var(--space-xl) var(--space-3xl);
+  }
+  .closing {
+    margin-inline: var(--space-xs);
+  }
+  .closing-layout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 480px) {
+  .site-header {
+    min-height: 84px;
+    gap: var(--space-sm);
+  }
+  .wordmark {
+    font-size: var(--text-body);
+    gap: var(--space-xs);
+  }
+  .wordmark img {
+    width: 30px;
+    height: 30px;
+  }
+  .site-nav .nav-integrations {
+    display: none;
+  }
+  .button-small {
+    padding-inline: var(--space-md);
+  }
+  .actions {
+    gap: var(--space-md);
+  }
+  .integration-row,
+  .principle-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .integration-row {
+    padding-block: var(--space-lg);
+  }
+  .provider-list {
+    gap: var(--space-xs);
+  }
+  .provider-list li {
+    padding-inline: var(--space-sm);
+    font-size: var(--text-small);
+  }
+  .hero-note {
+    font-size: 0.8125rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+    animation: none;
+    transition: none;
+  }
+}

@@ -5,19 +5,20 @@ import {
   parseCookieHeader,
   serializeCookieHeader,
 } from "@supabase/ssr";
-import type { Identity } from "../../core/src/model";
-import type { Config } from "../../backend/src/config";
+import type { Authentication } from "../../core/src/authentication";
 import type { Database } from "../../db/src/client";
 import * as authSchema from "../../db/src/auth-schema";
-export interface Authentication {
-  enabled: boolean;
-  identity(request: Request, headers: Headers): Promise<Identity | null>;
-  login(request: Request): Promise<Response>;
-  logout(request: Request): Promise<Response>;
-  handle(request: Request): Promise<Response>;
-}
+export type AuthenticationConfig = {
+  PUBLIC_URL: string;
+  AUTH_SECRET: string;
+  AUTH_SESSION_VERSION: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  SUPABASE_AUTH_URL?: string;
+  SUPABASE_AUTH_KEY?: string;
+};
 export function betterAuthentication(
-  config: Config,
+  config: AuthenticationConfig,
   db: Database,
 ): Authentication {
   const enabled = !!(config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET);
@@ -81,7 +82,7 @@ export function betterAuthentication(
   };
 }
 export function supabaseAuthentication(
-  config: Config,
+  config: AuthenticationConfig,
   http: typeof fetch = fetch,
 ): Authentication {
   function client(request: Request, headers: Headers) {

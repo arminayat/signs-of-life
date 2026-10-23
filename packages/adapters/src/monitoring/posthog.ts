@@ -131,6 +131,31 @@ function safeQuery(value: unknown): Query | undefined {
   }
   return result;
 }
+function insightDefinition(
+  insight: Record<string, unknown>,
+): MetricDefinition | undefined {
+  if (!insight.query) return;
+  let query: Query | undefined;
+  try {
+    query = safeQuery(insight.query);
+  } catch {
+    return;
+  }
+  if (!query) return;
+  return {
+    id: `insight:${String(insight.id)}`,
+    label: `Saved ${String(query.kind).replace("Query", "").toLowerCase()} ${String(insight.id)}`,
+    group: "usage",
+    shape:
+      query.kind === "FunnelsQuery"
+        ? "funnel"
+        : query.kind === "RetentionQuery"
+          ? "cohort"
+          : "series",
+    definition:
+      "PostHog saved aggregate report. Supported event/action counts only; no person properties, breakdowns, SQL or formulas.",
+  };
+}
 export function posthog(http: Http): ProviderAdapter {
   return {
     async catalog(c) {
@@ -181,28 +206,8 @@ export function posthog(http: Http): ProviderAdapter {
           ),
         );
         for (const value of array(data.results)) {
-          const r = object(value);
-          if (!r.query) continue;
-          let q: Query | undefined;
-          try {
-            q = safeQuery(r.query);
-          } catch {
-            continue;
-          }
-          if (q)
-            definitions.push({
-              id: `insight:${String(r.id)}`,
-              label: `Saved ${String(q.kind).replace("Query", "").toLowerCase()} ${String(r.id)}`,
-              group: "usage",
-              shape:
-                q.kind === "FunnelsQuery"
-                  ? "funnel"
-                  : q.kind === "RetentionQuery"
-                    ? "cohort"
-                    : "series",
-              definition:
-                "PostHog saved aggregate report. Supported event/action counts only; no person properties, breakdowns, SQL or formulas.",
-            });
+          const definition = insightDefinition(object(value));
+          if (definition) definitions.push(definition);
         }
         if (!data.next) break;
         const next = nextParameter(data.next, posthogHost(c), "offset");
@@ -214,6 +219,19 @@ export function posthog(http: Http): ProviderAdapter {
         offset = next;
       }
       return definitions;
+    },
+    async definition(c, resource, metric) {
+      const match = /^insight:(\d+)$/.exec(metric);
+      if (!match) return;
+      const insight = object(
+        await request(
+          http,
+          `${posthogHost(c)}/api/projects/${resourcePart(resource)}/insights/${match[1]}/`,
+          { headers: headers(c) },
+        ),
+      );
+      assert(String(insight.id) === match[1], "provider_response_invalid", 502);
+      return insightDefinition(insight);
     },
     async metric(input, query) {
       const match = /^insight:(\d+)$/.exec(query.metric);

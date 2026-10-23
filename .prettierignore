@@ -5,6 +5,7 @@ coverage
 test-results
 playwright-report
 **/dist
+**/dist-landing
 **/worker-configuration.d.ts
 packages/db/migrations
 pnpm-lock.yaml

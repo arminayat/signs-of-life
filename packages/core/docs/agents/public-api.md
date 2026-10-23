@@ -6,7 +6,7 @@ This is an internal source-level API, not a published SDK. Import the defining f
 
 - model.ts exports every domain type/port listed in 02 plus AppError/assert.
 - store.ts exports Project, Connection, Source, Destination, Delivery, Job, Metric, Challenge, Snapshot, ProjectOverview, MonitorStore.
-- time.ts exports localDay(now, timezone), dailyReady(now, timezone, time), reportingDates(now, days=7), validTimezone(value), shortAccount(id).
+- time.ts exports localDay(now, timezone), calendarRange(now, timezone, days), validateCalendarRange(range, now, timezone, maxDays=365), dailyReady(now, timezone, time), reportingDates(now, days=7), validTimezone(value), shortAccount(id).
   For a caller in packages/backend/src, an existing import pattern is:
 
 ```ts
@@ -23,3 +23,7 @@ monitoring.ts, provider-registry.ts and monitor-store.ts are source-level import
 ChannelKind includes telegram, email, slack and discord. Destination.secret is nullable encrypted webhook data; Snapshot omits secret and unsubscribeHash. Google Play and Lemon Squeezy use the existing ProviderAdapter interface and credential/resource metadata. No new job kinds are needed.
 
 Observation.occurredAtSource="payment_webhook" is emitted only for authenticated invoice payment transitions. It permits correction of an imported invoice-creation fallback and notification through the existing one-time canonical claim; it is never accepted as a client field.
+
+`authentication.ts` exports the pure Authentication interface; adapters implement it. `ProviderAdapter.definition?` supports one saved definition lookup without traversing a catalog. MonitoringStore adds `monitoringState` for configuration without cached report bodies. MonitorStore adds focused `deliveryEligibility`, atomic `reserveDueJobs`/`releaseDispatch`, `jobDiagnostics`, fenced `updateConnectionHealth`/`fanoutForJob`, and a boolean backlog result from `cleanup`. Worker write signatures require Job ownership; configuration mutations are separate.
+
+`calendarRange` derives inclusive bounds from the project's local date. `validateCalendarRange` accepts only real, canonical YYYY-MM-DD labels, rejects reversed/future ranges and enforces the 365-day retention boundary in that timezone. Calendar arithmetic uses UTC as a representation of date labels so daylight-saving transitions do not shift them. Provider reporting labels remain provider-defined; `reportingDates` still returns previous UTC Apple reporting dates.

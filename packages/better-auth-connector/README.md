@@ -18,7 +18,7 @@ export const auth = betterAuth({
 
 Generate a dedicated random token of at least 32 characters, for example `openssl rand -hex 32`. Enter the app's existing auth base URL (usually `https://example.com/api/auth`) and this token in Signs of Life. The installation operator must allowlist the connector hostname. Never use a Better Auth session/signing secret for the connector.
 
-Probe `GET <auth-base>/signs-of-life/v1/users?limit=1` with `Authorization: Bearer <connector-token>`. The response contains only `version`, the configured application name, stable account IDs, creation timestamps, anonymous status when the anonymous plugin is present, and an opaque `next` cursor. Send `from`, `until`, `limit` (1–200) and `after` to paginate. Keep the range fixed. Null `next` ends the scan; a final empty page is normal.
+Probe `GET <auth-base>/signs-of-life/v1/users?limit=1` with `Authorization: Bearer <connector-token>`. The response contains only `version`, the configured application name, stable account IDs, creation timestamps, anonymous status when the anonymous plugin is present, and an opaque `next` cursor. Send `from`, `until`, `limit` (1–200) and `after` to paginate. Keep the range fixed; equivalent ISO spellings normalize to UTC millisecond timestamps. Null `next` ends the scan; a final empty page is normal.
 
 The plugin uses Better Auth's adapter abstraction, including configured table/field mappings. Equal timestamps paginate by account ID; deletions do not shift offset positions. Existing-user history cannot reconstruct deleted accounts, and delayed insertion with an old timestamp can be missed beyond the monitoring overlap.
 

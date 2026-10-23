@@ -186,11 +186,20 @@ export function authSource(
       }
       if (kind === "workos") {
         const path = input.historical ? "/user_management/users" : "/events";
+        const earliest = Date.now() - 89 * 86400_000;
+        const truncated = input.cursor.retentionTruncated
+          ? input.cursor.retentionTruncated === "true"
+          : Date.parse(input.from) < earliest;
+        const coverage = input.historical
+          ? "Historical user records exclude deleted accounts; event replay is limited to 90 days."
+          : truncated
+            ? "Event history expired; earlier activity may be missing."
+            : "User-created events from the WorkOS event feed; replay is limited to 90 days.";
         const start =
           input.cursor.windowStart ||
-          new Date(
-            Math.max(Date.parse(input.from), Date.now() - 89 * 86400_000),
-          ).toISOString();
+          new Date(Math.max(Date.parse(input.from), earliest)).toISOString();
+        if (!input.historical && start >= input.until)
+          return { events: [], cursor: {}, done: true, coverage };
         const end = new Date(
           Math.min(Date.parse(input.until), Date.parse(start) + 29 * 86400_000),
         ).toISOString();
@@ -223,16 +232,16 @@ export function authSource(
         return {
           events,
           cursor: after
-            ? { after: string(after), windowStart: start }
+            ? {
+                after: string(after),
+                windowStart: start,
+                retentionTruncated: String(truncated),
+              }
             : !input.historical && end < input.until
-              ? { windowStart: end }
+              ? { windowStart: end, retentionTruncated: String(truncated) }
               : {},
           done: !after && (input.historical || end >= input.until),
-          coverage: input.historical
-            ? "Historical user records exclude deleted accounts; event replay is limited to 90 days."
-            : start > input.from
-              ? "Event history expired; earlier activity may be missing."
-              : undefined,
+          coverage,
         };
       }
       // Auth0 search stops at 1,000 matches. Bisect time ranges before reaching that cap.

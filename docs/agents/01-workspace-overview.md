@@ -6,7 +6,7 @@ Scope: these guides describe the inspected working tree. The content-frame/foote
 
 Signs of Life is a standalone AGPL-3.0-only pnpm workspace for account, billing and usage monitoring across an operator's products. It is not part of Kapier. Classification is WORKSPACE because pnpm-workspace.yaml includes apps/* and packages/*, with eight child manifests and source trees. None has a nested source workspace.
 
-- **apps/web — frontend/UI:** React dashboard, project views, destination controls, light/dark theme and static hosting bridge.
+- **apps/web — frontend/UI:** React dashboard, project views, destination controls, light/dark theme, static hosting bridge and an independently built public HTML/CSS landing page.
 - **apps/api — backend/API runtime:** Node server and Cloudflare fetch entrypoint for shared Hono behavior.
 - **apps/jobs — data pipeline/operations runtime:** Node direct job loop or Cloudflare Cron/Queue dispatch and consumption.
 - **packages/core — internal library:** domain/provider/store contracts and date helpers.

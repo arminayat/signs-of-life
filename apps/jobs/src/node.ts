@@ -1,9 +1,10 @@
 import { setTimeout } from "node:timers/promises";
 import { nodeServices } from "../../../packages/backend/src/node";
 import { runOne } from "../../../packages/backend/src/runner";
+import { cleanupSafely, reportJobDiagnostics } from "./maintenance";
 const { services, close } = nodeServices();
 let running = true,
-  lastCleanup = 0;
+  nextCleanup = 0;
 process.on("SIGINT", () => {
   running = false;
 });
@@ -14,11 +15,13 @@ console.log("Signs of Life background worker listening");
 try {
   while (running) {
     try {
-      if (Date.now() - lastCleanup > 3600_000) {
-        await services.store.cleanup();
-        lastCleanup = Date.now();
+      const executed = await runOne(services);
+      if (Date.now() >= nextCleanup) {
+        const pending = await cleanupSafely(services.store);
+        await reportJobDiagnostics(services.store);
+        nextCleanup = Date.now() + (pending ? 60_000 : 3600_000);
       }
-      if (!(await runOne(services))) await setTimeout(1000);
+      if (!executed) await setTimeout(1000);
     } catch {
       console.error(JSON.stringify({ event: "worker_loop_failed" }));
       await setTimeout(5000);

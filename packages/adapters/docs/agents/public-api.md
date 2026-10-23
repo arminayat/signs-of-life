@@ -15,3 +15,5 @@ Pass a fake Http to test adapters without contacting providers. source/report ad
 ## Implemented today — expanded monitoring
 
 monitoring/index.ts exposes monitorAdapter. Callers provide transport and credentials, adapters return allowlisted core data. A verified Stripe lookup reads an invoice or charge within an authenticated account. Unknown references remain separate. No customer email, profile or arbitrary provider payload is returned or persisted.
+
+ProviderAdapter.definition is an optional targeted lookup for a selected metric. PostHog uses it; definitions remains the full catalog contract. Authentication is imported from core/src/authentication.ts. The auth factories accept adapter-owned AuthenticationConfig, structurally compatible with backend configuration without importing it.

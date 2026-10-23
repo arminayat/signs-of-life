@@ -5,6 +5,7 @@ import {
   type CollectionInput,
   type MonitorState,
 } from "../../core/src/monitoring";
+import { calendarRange } from "../../core/src/time";
 import type { Job, Source } from "../../core/src/store";
 import { hashToken } from "../../adapters/src/crypto";
 import { adapterFor, monitoringCredentials } from "./monitoring-access";
@@ -54,10 +55,9 @@ async function refreshViews(
   services: Services,
   source: Source,
   history: boolean,
-  credentials: Record<string, string>,
 ) {
   assert(isMonitorKind(source.kind), "connection_type_mismatch");
-  const snapshot = await services.store.monitoringSnapshot(
+  const snapshot = await services.store.monitoringState(
     source.workspaceId,
     source.projectId,
   );
@@ -65,10 +65,16 @@ async function refreshViews(
     (v) => v.sourceId === source.id && !v.hidden,
   );
   if (!views.length) return;
-  const to = new Date().toISOString().slice(0, 10),
-    from = new Date(Date.now() - (history ? 364 : 29) * 86400_000)
-      .toISOString()
-      .slice(0, 10);
+  const project = await services.store.project(
+    source.workspaceId,
+    source.projectId,
+  );
+  if (!project) return;
+  const { from, to } = calendarRange(
+    new Date(),
+    project.timezone,
+    history ? 365 : 30,
+  );
   for (const view of views) {
     const query = { metric: view.metric, from, to, filters: view.filters };
     await services.store.requestMetric(
@@ -138,13 +144,17 @@ export async function collectMonitor(
     historical,
     job,
   );
-  await store.updateConnection(connection.id, {
-    status: "connected",
-    lastError: null,
-    lastSuccessAt: new Date(),
-  });
+  await store.updateConnectionHealth(
+    connection.id,
+    {
+      status: "connected",
+      lastError: null,
+      lastSuccessAt: new Date(),
+    },
+    job,
+  );
   if (!page.done) return new Date(Date.now() + 3000);
-  await refreshViews(services, source, historical, credentials);
+  await refreshViews(services, source, historical);
   if (historical) return;
   return new Date(Date.now() + (adapter.collect ? 300_000 : 3600_000));
 }
@@ -162,11 +172,15 @@ export async function collectMetric(
   assert(state, "source_state_missing", 409);
   try {
     const { adapter, credentials } = await access(services, source);
-    const definitions = await adapter.definitions(
-        credentials,
-        source.externalId,
-      ),
-      definition = definitions.find((d) => d.id === metric.query.metric);
+    const definition = adapter.definition
+      ? await adapter.definition(
+          credentials,
+          source.externalId,
+          metric.query.metric,
+        )
+      : (await adapter.definitions(credentials, source.externalId)).find(
+          (d) => d.id === metric.query.metric,
+        );
     assert(definition, "provider_metric_unsupported", 422);
     for (const [key, value] of Object.entries(metric.query.filters)) {
       const filter = definition.filters?.find((f) => f.id === key);
@@ -187,7 +201,7 @@ export async function collectMetric(
           metric.query,
         );
     assert(result, "provider_metric_unsupported", 422);
-    await store.saveMetric(metricId, result, null);
+    await store.saveMetric(metricId, result, null, job);
   } catch (error) {
     const code =
       error instanceof AppError ? error.code : "metric_collection_failed";
@@ -197,6 +211,7 @@ export async function collectMetric(
         ? null
         : await store.retainedSeries(source.id, metric.query),
       code,
+      job,
     );
     if (
       [
@@ -248,5 +263,5 @@ export async function processMonitorWebhook(
           job,
         );
     }
-  await store.removeMonitorInbox(job.workspaceId, inboxId);
+  await store.removeMonitorInbox(job.workspaceId, inboxId, job);
 }

@@ -36,8 +36,11 @@ export async function verifiedMatches(
         const key = `${connection.id}:${event.candidate.object}`;
         let matches = cache.get(key);
         if (!matches) {
-          const credentials = await monitoringCredentials(services, connection);
           try {
+            const credentials = await monitoringCredentials(
+              services,
+              connection,
+            );
             matches = await adapterFor(services, event.candidate.provider)
               .lookup!(credentials, event.candidate.object);
           } catch (error) {

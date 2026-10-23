@@ -3,6 +3,7 @@
 ## Implemented today
 
 - src/main.tsx: shell, login, routing, theme; src/data.ts: HTTP/query/mutation helpers.
+- src/route-content.tsx: shared route loading, failure and reload recovery boundary.
 - src/ui.tsx: reusable UI wrappers; src/catalog.ts: catalog shape/query.
 - src/projects.tsx: workspace projects/create flow.
 - src/project-detail.tsx: project routing/sidebar; project-sources.tsx, project-overview.tsx, project-notifications.tsx: project views.
@@ -12,6 +13,8 @@
 - src/styles.css, responsive.css, project.css, content-frame.css: tokens/base, responsive/login, project, header/footer styling.
 - src/cloudflare.ts, wrangler.jsonc, worker-configuration.d.ts: asset/API forwarding deployment.
 - index.html, vite.config.ts, package.json: boot/build/package metadata.
+- landing/index.html: public conversion page; landing/tokens.css, base.css, preview.css, sections.css and responsive.css are composed by landing/styles.css. All files stay below 500 lines.
+- landing/public/: standalone favicon and asset response headers. vite.landing.config.ts and wrangler.landing.jsonc build/deploy the public page separately; dist-landing/ is ignored generated output.
 - public/favicon.svg and public/_headers: static icon and Cloudflare asset response headers, copied by Vite into dist/.
   Local components/, pages/, hooks/, api/ and local tests/ are not present. dist/ is generated output, not source.
 
@@ -21,4 +24,4 @@ Keep feature UI beside its feature file; shared UI stays in ui.tsx until a coher
 
 ## Implemented today — monitoring modules
 
-src/monitor-connection.tsx, monitor-status.tsx, monitor-views.tsx, monitor-overview.tsx and monitor-chart.tsx are focused setup/state/report modules; src/monitoring.css owns their responsive layout. Existing project-overview.tsx remains the Supabase/Apple chart implementation. Shared provider metadata comes from core/provider-registry.ts.
+src/monitor-connection.tsx, monitor-status.tsx, monitor-views.tsx, monitor-overview.tsx and monitor-chart.tsx are focused setup/state/report modules; src/monitoring.css owns their responsive layout; metric-polling.ts owns result-aware polling intervals. Existing project-overview.tsx remains the Supabase/Apple chart implementation. Shared provider metadata comes from core/provider-registry.ts.

@@ -1,4 +1,4 @@
-import { and, count, eq, gte, lte, sql } from "drizzle-orm";
+import { and, count, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { fromZonedTime } from "date-fns-tz";
 import type { Database } from "./client";
 import type { MonitorStore } from "../../core/src/store";
@@ -40,7 +40,13 @@ export function overviewStore(
                 fromZonedTime(`${dates[0]}T00:00:00`, project.timezone),
               ),
               lte(t.events.occurredAt, now),
-              lte(accountDate, today),
+              lt(
+                t.events.occurredAt,
+                fromZonedTime(
+                  `${new Date(Date.parse(`${today}T00:00:00Z`) + 86400_000).toISOString().slice(0, 10)}T00:00:00`,
+                  project.timezone,
+                ),
+              ),
             ),
           )
           .groupBy(sql`account_date`)

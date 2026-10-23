@@ -7,6 +7,8 @@ Working-tree scope: the rounded content frame, footer version/GitHub/theme contr
 React SPA for operators to monitor multiple products. A validated session opens Projects; creating a project opens Sources; connect provider credentials, select source, create/verify destinations and route notifications; Overview organizes source-specific Growth, Revenue and Usage cards/charts/funnels/cohorts with configurable views and retained date ranges; Notifications shows delivery outcomes and supported event preferences.
 main.tsx renders login on session 401 and bypasses session query for /verify. No fake connected state, password form or production auth bypass exists. Cloudflare serves built assets and forwards /api/*; nginx is the Docker equivalent.
 
+The same web project owns a separately built public landing page under `landing/`, configured for `https://soll.arminayat.dev`. It is static HTML/CSS with native FAQ disclosure and direct links to the existing app at `https://sol.arminayat.dev/`. It does not load the SPA, query sessions, fetch customer data or send notifications. Its overview and message examples are visibly labeled illustrative data. The dedicated assets Worker can deploy independently of the dashboard/API/jobs.
+
 ## Planned/aspirational
 
 No separate mobile app, team management, billing of Signs of Life itself or new analytics instrumentation is present. Live provider acceptance must be checked separately from this UI and historical docs/status.md.

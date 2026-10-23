@@ -4,7 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import type { ApiServices } from "./services";
 import { AppError, assert } from "../../core/src/model";
-import { validTimezone } from "../../core/src/time";
+import { validTimezone, validateCalendarRange } from "../../core/src/time";
 import { integrationRoutes } from "./routes-integrations";
 import { destinationRoutes } from "./routes-destinations";
 import { monitoringRoutes } from "./routes-monitoring";
@@ -49,7 +49,7 @@ export function createApi(services: ApiServices) {
     console.error(
       JSON.stringify({
         event: "api_error",
-        path: new URL(c.req.url).pathname,
+        path: c.req.routePath ?? "unmatched",
         code: "internal_error",
       }),
     );
@@ -159,9 +159,7 @@ export function createApi(services: ApiServices) {
         .object({ from: z.iso.date(), to: z.iso.date() })
         .parse({ from, to });
       assert(
-        range.from <= range.to &&
-          Date.parse(range.from) >= Date.now() - 366 * 86400_000 &&
-          Date.parse(range.to) <= Date.now(),
+        validateCalendarRange(range, new Date(), project.timezone),
         "invalid_date_range",
       );
     }

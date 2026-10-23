@@ -8,8 +8,8 @@ Physical schema/migrations belong to packages/db/docs/agents/data-model.md; doma
 - Project carries enabled, timezone, dailyTime and destination routing. enabled pauses notification fanout/send, not collector observation.
 - Connection owns encrypted credentials; new connections have a project; null projectId is the migrated shared exception. Source carries external app/project ID, baseline/cursor.
 - Delivery is durable per destination/key, separate from its job and provider outcome. Accepted, failed, uncertain and cancelled stop sends. Verification deliveries can target unverified destinations.
-- Jobs contain supabase.collect/sourceId, apple.collect/connectionId, daily/projectId, deliver/deliveryId, monitor.collect/sourceId+historical, monitor.metric/metricId or monitor.webhook/inboxId. Database lease token fences completion.
-- Snapshot removes ciphertext, refresh leases and unsubscribe hash and redacts verification text. Its project variant restricts delivery history, not every workspace array. Overview uses uncapped aggregation separate from snapshot feed limits.
+- Jobs contain supabase.collect/sourceId, apple.collect/connectionId, daily/projectId, deliver/deliveryId, monitor.collect/sourceId+historical, monitor.metric/metricId or monitor.webhook/inboxId. Required claim arguments fence worker result and error transactions as well as completion. Daily fanout uses fanoutForJob; configuration/API fanout remains a separate path.
+- Snapshot removes ciphertext, refresh leases and unsubscribe hash and redacts verification text. Its project variant restricts delivery history, not every workspace array. Delivery execution uses a focused eligibility query instead of loading a snapshot. Monitoring state polling returns only states and views; metric query results are polled separately. Overview uses uncapped aggregation separate from snapshot feed limits.
 
 ## Implemented today — monitoring records
 

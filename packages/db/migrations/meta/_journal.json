@@ -85,6 +85,20 @@
       "when": 1792260308244,
       "tag": "0011_webhook_destinations",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792703021703,
+      "tag": "0012_workflow_reliability",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792703191898,
+      "tag": "0013_account_overview",
+      "breakpoints": true
     }
   ]
 }

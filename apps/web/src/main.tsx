@@ -1,4 +1,5 @@
-import { StrictMode, useEffect, useState } from "react";
+import { RouteContent } from "./route-content";
+import { StrictMode, lazy, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
@@ -28,13 +29,29 @@ import {
 } from "lucide-react";
 import { api, ApiError, useConfig } from "./data";
 import { ErrorNotice, External, GitHubMark, Loading, Logo } from "./ui";
-import { ProjectsPage } from "./projects";
-import { ProjectPage } from "./project-detail";
-import { DestinationsPage } from "./destinations";
-import { ActivityPage, SettingsPage, VerifyPage } from "./other-pages";
+const ProjectsPage = lazy(() =>
+  import("./projects").then((m) => ({ default: m.ProjectsPage })),
+);
+const ProjectPage = lazy(() =>
+  import("./project-detail").then((m) => ({ default: m.ProjectPage })),
+);
+const DestinationsPage = lazy(() =>
+  import("./destinations").then((m) => ({ default: m.DestinationsPage })),
+);
+const ActivityPage = lazy(() =>
+  import("./other-pages").then((m) => ({ default: m.ActivityPage })),
+);
+const SettingsPage = lazy(() =>
+  import("./other-pages").then((m) => ({ default: m.SettingsPage })),
+);
+const VerifyPage = lazy(() =>
+  import("./other-pages").then((m) => ({ default: m.VerifyPage })),
+);
+import { version as appVersion } from "../../../package.json";
 import "./styles.css";
 import "./responsive.css";
 import "./project.css";
+import "./content-frame.css";
 const client = new QueryClient({
   defaultOptions: {
     queries: {
@@ -144,19 +161,19 @@ function Login() {
           <div className="mt-4">
             <ErrorNotice error={error ?? config.error} />
           </div>
-          <div className="mt-8 flex items-center justify-between">
-            <External
-              href={
-                config.data?.sourceUrl ??
-                "https://github.com/arminayat/signs-of-life"
-              }
-            >
-              View source
-            </External>
-            <ThemeToggle />
-          </div>
         </div>
       </section>
+      <div className="login-utilities">
+        <External
+          href={
+            config.data?.sourceUrl ??
+            "https://github.com/arminayat/signs-of-life"
+          }
+        >
+          View source
+        </External>
+        <ThemeToggle />
+      </div>
     </div>
   );
 }
@@ -176,7 +193,12 @@ function App() {
     retry: false,
     enabled: pathname !== "/verify",
   });
-  if (pathname === "/verify") return <VerifyPage />;
+  if (pathname === "/verify")
+    return (
+      <RouteContent>
+        <VerifyPage />
+      </RouteContent>
+    );
   if (session.isPending) return <Loading />;
   if (session.error instanceof ApiError && session.error.status === 401)
     return <Login />;
@@ -223,10 +245,6 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <External href={config.data?.sourceUrl ?? "#"}>
-            <GitHubMark size={15} />
-            <span className="nav-label">Open-source project</span>
-          </External>
           <div className="user-row">
             <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
             <div className="user-details flex-1 min-w-0">
@@ -245,42 +263,59 @@ function App() {
           </div>
         </div>
       </aside>
+      <div className="content-header">
+        <span>
+          Workspace <span className="mx-2 opacity-40">/</span>{" "}
+          {nav.find(
+            (item) => item.path !== "/" && pathname.startsWith(item.path),
+          )?.label ?? "Projects"}
+        </span>
+      </div>
       <main id="content" className="main-content">
-        <div className="topbar">
-          <span>
-            Workspace <span className="mx-2 opacity-40">/</span>{" "}
-            {nav.find(
-              (item) => item.path !== "/" && pathname.startsWith(item.path),
-            )?.label ?? "Projects"}
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#81a267]" />
-              Your product pulse
-            </span>
-            <ThemeToggle />
-          </div>
-        </div>
-        <Routes>
-          <Route path="/" element={<ProjectsPage />} />
-          <Route path="/projects/:id/*" element={<ProjectPage />} />
-          <Route path="/connections" element={<Navigate to="/" replace />} />
-          <Route path="/destinations" element={<DestinationsPage />} />
-          <Route path="/activity" element={<ActivityPage />} />
-          <Route path="/settings" element={<SettingsPage logout={logout} />} />
-          <Route
-            path="*"
-            element={
-              <div>
-                <h1>Page not found</h1>
-                <Link className="text-link mt-4" to="/">
-                  Back to projects
-                </Link>
-              </div>
-            }
-          />
-        </Routes>
+        <RouteContent>
+          <Routes>
+            <Route path="/" element={<ProjectsPage />} />
+            <Route path="/projects/:id/*" element={<ProjectPage />} />
+            <Route path="/connections" element={<Navigate to="/" replace />} />
+            <Route path="/destinations" element={<DestinationsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+            <Route
+              path="/settings"
+              element={<SettingsPage logout={logout} />}
+            />
+            <Route
+              path="*"
+              element={
+                <div>
+                  <h1>Page not found</h1>
+                  <Link className="text-link mt-4" to="/">
+                    Back to projects
+                  </Link>
+                </div>
+              }
+            />
+          </Routes>
+        </RouteContent>
       </main>
+      <footer className="content-footer">
+        <div className="footer-meta">
+          <span>v{appVersion}</span>
+          <a
+            className="footer-github"
+            href={
+              config.data?.sourceUrl ??
+              "https://github.com/arminayat/signs-of-life"
+            }
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open-source project on GitHub"
+            title="Open-source project on GitHub"
+          >
+            <GitHubMark size={15} />
+          </a>
+          <ThemeToggle />
+        </div>
+      </footer>
     </div>
   );
 }

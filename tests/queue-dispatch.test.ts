@@ -2,8 +2,9 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 const { store, close, sendBatch } = vi.hoisted(() => ({
   store: {
-    dueJobs: vi.fn<() => Promise<string[]>>(),
-    markDispatched: vi.fn(async (_id: string) => {}),
+    reserveDueJobs: vi.fn<() => Promise<string[]>>(),
+    releaseDispatch: vi.fn(async (_ids: string[]) => {}),
+    jobDiagnostics: vi.fn(async () => ({})),
     cleanup: vi.fn(),
   },
   close: vi.fn(async () => {}),
@@ -25,13 +26,13 @@ const env = {
   JOBS: { sendBatch },
 } as unknown as JobBindings;
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => vi.resetAllMocks());
 
-it("publishes up to 100 due jobs in one batch before marking any dispatched", async () => {
+it("publishes reserved jobs in batches and stops when the next scan is empty", async () => {
   const ids = Array.from({ length: 100 }, (_, i) => `job-${i}`);
-  store.dueJobs.mockResolvedValue(ids);
+  store.reserveDueJobs.mockResolvedValueOnce(ids).mockResolvedValue([]);
   sendBatch.mockImplementation(async (messages) => {
-    expect(store.markDispatched).not.toHaveBeenCalled();
+    expect(store.releaseDispatch).not.toHaveBeenCalled();
     expect(messages).toEqual(
       ids.map((id) => ({ body: { id }, contentType: "json" })),
     );
@@ -39,26 +40,30 @@ it("publishes up to 100 due jobs in one batch before marking any dispatched", as
 
   await worker.scheduled(event, env);
 
-  expect(store.dueJobs).toHaveBeenCalledExactlyOnceWith(100);
+  expect(store.reserveDueJobs).toHaveBeenCalledTimes(2);
+  expect(store.reserveDueJobs).toHaveBeenCalledWith(100);
   expect(sendBatch).toHaveBeenCalledOnce();
-  expect(store.markDispatched.mock.calls.map(([id]) => id)).toEqual(ids);
+  expect(store.releaseDispatch).not.toHaveBeenCalled();
   expect(close).toHaveBeenCalledOnce();
 });
 
 it("does not publish a queue message when no job is due", async () => {
-  store.dueJobs.mockResolvedValue([]);
+  store.reserveDueJobs.mockResolvedValue([]);
   await worker.scheduled(event, env);
   expect(sendBatch).not.toHaveBeenCalled();
-  expect(store.markDispatched).not.toHaveBeenCalled();
+  expect(store.releaseDispatch).not.toHaveBeenCalled();
   expect(close).toHaveBeenCalledOnce();
 });
 
 it("leaves jobs recoverable and closes the connection after failed publication", async () => {
-  store.dueJobs.mockResolvedValue(["job-1", "job-2"]);
+  store.reserveDueJobs.mockResolvedValue(["job-1", "job-2"]);
   sendBatch.mockRejectedValue(new Error("publication failed"));
   await expect(worker.scheduled(event, env)).rejects.toThrow(
     "publication failed",
   );
-  expect(store.markDispatched).not.toHaveBeenCalled();
+  expect(store.releaseDispatch).toHaveBeenCalledExactlyOnceWith([
+    "job-1",
+    "job-2",
+  ]);
   expect(close).toHaveBeenCalledOnce();
 });

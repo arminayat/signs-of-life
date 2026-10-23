@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import type { MonitoringStore } from "../../core/src/monitor-store";
 import type { MetricQuery } from "../../core/src/monitoring";
+import { lockJob, lockSource } from "./store-guards";
 import * as m from "./schema-monitoring";
 function key(query: MetricQuery) {
   return JSON.stringify([
@@ -13,8 +14,30 @@ export function monitoringSeriesStore(
   db: Database,
 ): Pick<MonitoringStore, "saveMetric" | "retainedSeries"> {
   return {
-    async saveMetric(id, result, error) {
+    async saveMetric(id, result, error, job) {
       await db.transaction(async (tx) => {
+        await lockJob(tx, job);
+        const [identity] = await tx
+          .select({ sourceId: m.monitorMetrics.sourceId })
+          .from(m.monitorMetrics)
+          .where(eq(m.monitorMetrics.id, id));
+        if (
+          !identity ||
+          !(await lockSource(tx, identity.sourceId, job.workspaceId))
+        )
+          return;
+        const [previous] = await tx
+          .select()
+          .from(m.monitorMetrics)
+          .where(eq(m.monitorMetrics.id, id))
+          .for("update");
+        if (!previous) return;
+        if (
+          result &&
+          previous.result &&
+          Date.parse(result.fetchedAt) < Date.parse(previous.result.fetchedAt)
+        )
+          return;
         const [request] = await tx
           .update(m.monitorMetrics)
           .set({ ...(result ? { result } : {}), error, updatedAt: new Date() })

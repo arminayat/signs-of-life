@@ -9,6 +9,7 @@ import * as t from "./schema";
 import { fanout } from "./store-delivery";
 import { jobStore } from "./store-jobs";
 import { localDay } from "../../core/src/time";
+import { lockJob, lockSource } from "./store-guards";
 import { monitoringSeriesStore } from "./store-monitoring-series";
 function state(row: typeof m.monitorStates.$inferSelect): MonitorState {
   return {
@@ -32,11 +33,15 @@ export function monitoringStore(db: Database): MonitoringStore {
         .where(eq(m.monitorStates.sourceId, sourceId));
       return row && state(row);
     },
-    async monitorError(sourceId, historical, error) {
-      await db
-        .update(m.monitorStates)
-        .set(historical ? { historyError: error } : { liveError: error })
-        .where(eq(m.monitorStates.sourceId, sourceId));
+    async monitorError(sourceId, historical, error, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job);
+        if (!(await lockSource(tx, sourceId, job.workspaceId))) return;
+        await tx
+          .update(m.monitorStates)
+          .set(historical ? { historyError: error } : { liveError: error })
+          .where(eq(m.monitorStates.sourceId, sourceId));
+      });
     },
     async initializeMonitor(source, environment) {
       const now = source.baseline;
@@ -69,33 +74,9 @@ export function monitoringStore(db: Database): MonitoringStore {
     },
     async saveMonitorPage(source, observations, patch, historical, lease) {
       await db.transaction(async (tx) => {
-        if (lease) {
-          assert(lease.leaseToken, "job_lease_lost", 409);
-          const [currentJob] = await tx
-            .select()
-            .from(t.jobs)
-            .where(
-              and(
-                eq(t.jobs.id, lease.id),
-                eq(t.jobs.workspaceId, source.workspaceId),
-                eq(t.jobs.leaseToken, lease.leaseToken || ""),
-                sql`${t.jobs.leaseUntil} > now()`,
-              ),
-            )
-            .for("share");
-          assert(currentJob, "job_lease_lost", 409);
-        }
-        const [connection] = await tx
-          .select()
-          .from(t.connections)
-          .where(
-            and(
-              eq(t.connections.id, source.connectionId),
-              eq(t.connections.active, true),
-            ),
-          )
-          .for("share");
-        if (!connection) return;
+        await lockJob(tx, lease, source.workspaceId);
+        // Match health/metric lock ordering: source before monitor state.
+        if (!(await lockSource(tx, source.id, source.workspaceId))) return;
         const [current] = await tx
           .select()
           .from(m.monitorStates)
@@ -111,7 +92,32 @@ export function monitoringStore(db: Database): MonitoringStore {
             ),
           );
         if (!current || !project) return;
-        for (const event of observations) {
+        const keyed = observations
+          .map((event) => {
+            const ref = event.reference;
+            const key = JSON.stringify(
+              ref
+                ? [
+                    event.environment,
+                    ref.provider,
+                    ref.account,
+                    ref.object,
+                    ref.action,
+                  ]
+                : [
+                    event.environment,
+                    source.kind,
+                    source.connectionId,
+                    source.externalId,
+                    event.id,
+                  ],
+            );
+            return { event, key };
+          })
+          .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+        // Verified aliases can overlap across sources. Lock canonical keys in
+        // the same order even when providers return their pages differently.
+        for (const { event, key } of keyed) {
           if (
             event.resourceId !== source.externalId ||
             event.environment !== current.environment
@@ -131,24 +137,6 @@ export function monitoringStore(db: Database): MonitoringStore {
             event.occurredAtSource === "payment_webhook" &&
             (event.kind === "payment" || event.kind === "renewal");
           if (observed && !paymentTransition) continue;
-          const ref = event.reference;
-          const key = JSON.stringify(
-            ref
-              ? [
-                  event.environment,
-                  ref.provider,
-                  ref.account,
-                  ref.object,
-                  ref.action,
-                ]
-              : [
-                  event.environment,
-                  source.kind,
-                  connection.id,
-                  source.externalId,
-                  event.id,
-                ],
-          );
           const [inserted] = await tx
             .insert(m.monitorEvents)
             .values({
@@ -266,38 +254,24 @@ export function monitoringStore(db: Database): MonitoringStore {
         .set({ notifications })
         .where(eq(m.monitorStates.sourceId, sourceId));
     },
+    async monitoringState(workspaceId, projectId) {
+      return readState(db, workspaceId, projectId);
+    },
     async monitoringSnapshot(workspaceId, projectId) {
-      const condition = and(
-        eq(t.sources.workspaceId, workspaceId),
-        eq(t.sources.projectId, projectId),
-      );
-      const states = await db
-        .select({ state: m.monitorStates })
-        .from(m.monitorStates)
-        .innerJoin(t.sources, eq(t.sources.id, m.monitorStates.sourceId))
-        .where(condition);
+      const snapshot = await readState(db, workspaceId, projectId);
       const metrics = await db
         .select({ metric: m.monitorMetrics })
         .from(m.monitorMetrics)
         .innerJoin(t.sources, eq(t.sources.id, m.monitorMetrics.sourceId))
-        .where(condition)
-        .orderBy(desc(m.monitorMetrics.updatedAt))
-        .limit(200);
-      const [dashboard] = await db
-        .select()
-        .from(m.monitorDashboards)
-        .innerJoin(t.projects, eq(t.projects.id, m.monitorDashboards.projectId))
         .where(
           and(
-            eq(t.projects.id, projectId),
-            eq(t.projects.workspaceId, workspaceId),
+            eq(t.sources.workspaceId, workspaceId),
+            eq(t.sources.projectId, projectId),
           ),
-        );
-      return {
-        states: states.map(({ state: row }) => state(row)),
-        metrics: metrics.map(({ metric }) => metric),
-        views: dashboard?.monitor_dashboards.views ?? [],
-      };
+        )
+        .orderBy(desc(m.monitorMetrics.updatedAt))
+        .limit(200);
+      return { ...snapshot, metrics: metrics.map(({ metric }) => metric) };
     },
     async saveViews(workspaceId, projectId, views) {
       await db.transaction(async (tx) => {
@@ -441,5 +415,34 @@ export function monitoringStore(db: Database): MonitoringStore {
         fetchedAt: new Date().toISOString(),
       };
     },
+  };
+}
+
+async function readState(db: Database, workspaceId: string, projectId: string) {
+  const [states, dashboards] = await Promise.all([
+    db
+      .select({ state: m.monitorStates })
+      .from(m.monitorStates)
+      .innerJoin(t.sources, eq(t.sources.id, m.monitorStates.sourceId))
+      .where(
+        and(
+          eq(t.sources.workspaceId, workspaceId),
+          eq(t.sources.projectId, projectId),
+        ),
+      ),
+    db
+      .select({ views: m.monitorDashboards.views })
+      .from(m.monitorDashboards)
+      .innerJoin(t.projects, eq(t.projects.id, m.monitorDashboards.projectId))
+      .where(
+        and(
+          eq(t.projects.id, projectId),
+          eq(t.projects.workspaceId, workspaceId),
+        ),
+      ),
+  ]);
+  return {
+    states: states.map(({ state: row }) => state(row)),
+    views: dashboards[0]?.views ?? [],
   };
 }

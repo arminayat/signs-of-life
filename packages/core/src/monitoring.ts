@@ -104,6 +104,11 @@ export type MetricResult = {
 export type ProviderAdapter = {
   catalog(credentials: Credentials): Promise<Resource[]>;
   collect?(input: CollectionInput): Promise<CollectionPage>;
+  definition?(
+    credentials: Credentials,
+    resourceId: string,
+    metricId: string,
+  ): Promise<MetricDefinition | undefined>;
   definitions(
     credentials: Credentials,
     resourceId: string,

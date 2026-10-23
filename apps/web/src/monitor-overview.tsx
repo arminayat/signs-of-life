@@ -14,6 +14,11 @@ import { useMonitoring } from "./monitor-status";
 import { ViewEditor } from "./monitor-views";
 import { MonitorChart } from "./monitor-chart";
 import { LegacyOverview } from "./project-overview";
+import {
+  calendarRange,
+  validateCalendarRange,
+} from "../../../packages/core/src/time";
+import { metricPollInterval } from "./metric-polling";
 import "./monitoring.css";
 export type Range = { from: string; to: string };
 export function ProjectOverview({
@@ -23,23 +28,17 @@ export function ProjectOverview({
   project: Project;
   data: Dashboard;
 }) {
-  const today = new Date().toISOString().slice(0, 10),
-    oldest = new Date(Date.now() - 364 * 86400_000).toISOString().slice(0, 10);
+  const now = new Date();
+  const { from: oldest, to: today } = calendarRange(now, project.timezone, 365);
   const [days, setDays] = useState("30"),
     [customFrom, setCustomFrom] = useState(today),
     [customTo, setCustomTo] = useState(today),
     [edit, setEdit] = useState(false);
-  const range = {
-    from:
-      days === "custom"
-        ? customFrom
-        : new Date(Date.now() - (Number(days) - 1) * 86400_000)
-            .toISOString()
-            .slice(0, 10),
-    to: days === "custom" ? customTo : today,
-  };
-  const valid =
-    range.from >= oldest && range.from <= range.to && range.to <= today;
+  const range =
+    days === "custom"
+      ? { from: customFrom, to: customTo }
+      : calendarRange(now, project.timezone, Number(days));
+  const valid = validateCalendarRange(range, now, project.timezone);
   const query = useMonitoring(project.id),
     sources = data.sources.filter((s) => s.projectId === project.id);
   return (
@@ -93,7 +92,11 @@ export function ProjectOverview({
             </label>
           </>
         )}
-        <Button variant="secondary" onPress={() => setEdit(true)}>
+        <Button
+          variant="secondary"
+          isDisabled={!query.isSuccess}
+          onPress={() => setEdit(true)}
+        >
           Configure views
         </Button>
       </div>
@@ -149,11 +152,11 @@ export function ProjectOverview({
         Provider metrics stay source-specific. Missing data is not zero.
         Currencies are not combined; history depends on provider coverage.
       </p>
-      {edit && (
+      {edit && query.data && (
         <ViewEditor
           projectId={project.id}
           data={data}
-          initial={query.data?.views || []}
+          initial={query.data.views}
           onClose={() => setEdit(false)}
         />
       )}
@@ -184,7 +187,7 @@ function MetricCard({
     queryKey: ["metric-result", query.data?.id],
     queryFn: () => api<StoredMetric>(`/monitor/metrics/${query.data!.id}`),
     enabled: !!query.data?.id,
-    refetchInterval: 15_000,
+    refetchInterval: (state) => metricPollInterval(state.state.data),
   });
   const metric = resultQuery.data || query.data,
     result = metric?.result;

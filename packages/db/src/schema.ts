@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgSchema,
   uuid,
@@ -191,6 +192,9 @@ export const events = appSchema.table(
   (t) => [
     uniqueIndex("unique_account_event").on(t.sourceId, t.externalId),
     index("event_retention").on(t.createdAt),
+    index("event_source_occurred")
+      .on(t.sourceId, t.occurredAt)
+      .where(sql`${t.anonymous} = false`),
   ],
 );
 export const metrics = appSchema.table(

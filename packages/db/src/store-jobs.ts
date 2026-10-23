@@ -1,7 +1,7 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import * as t from "./schema";
-import * as m from "./schema-monitoring";
+import { cleanup } from "./store-cleanup";
 import type { Job, MonitorStore } from "../../core/src/store";
 export function jobStore(
   db: Database,
@@ -11,6 +11,9 @@ export function jobStore(
   | "claim"
   | "finish"
   | "dueJobs"
+  | "reserveDueJobs"
+  | "releaseDispatch"
+  | "jobDiagnostics"
   | "markDispatched"
   | "cleanup"
   | "receipt"
@@ -41,6 +44,7 @@ export function jobStore(
         .where(
           sql`${t.jobs.status} in ('pending','running') and ${t.jobs.dueAt} <= now() and (${t.jobs.leaseUntil} is null or ${t.jobs.leaseUntil} < now()) and (${t.jobs.dispatchedAt} is null or ${t.jobs.dispatchedAt} < now() - interval '2 minutes')`,
         )
+        .orderBy(t.jobs.dueAt, t.jobs.id)
         .limit(limit);
       return rows.map((row) => row.id);
     },
@@ -107,73 +111,59 @@ export function jobStore(
       );
     },
     async cleanup() {
-      await db
-        .delete(t.challenges)
-        .where(lt(t.challenges.expiresAt, new Date()));
-      await db.delete(t.limits).where(lt(t.limits.resetAt, new Date()));
-      const history = new Date(Date.now() - 30 * 86400_000);
-      await db
-        .delete(t.events)
-        .where(
-          and(
-            lt(t.events.createdAt, new Date(Date.now() - 365 * 86400_000)),
-            sql`exists(select 1 from ${t.sources} where ${t.sources.id} = ${t.events.sourceId} and (${t.sources.cursor}->>'at')::timestamptz > ${t.events.occurredAt} + interval '5 minutes')`,
-          ),
-        );
-      await db
-        .delete(t.deliveries)
-        .where(
-          and(
-            lt(t.deliveries.updatedAt, history),
-            sql`${t.deliveries.status} in ('accepted','failed','uncertain','cancelled')`,
-          ),
-        );
-      await db
-        .delete(t.jobs)
-        .where(
-          and(
-            sql`${t.jobs.status} in ('completed', 'failed')`,
-            lt(t.jobs.createdAt, history),
-          ),
-        );
-      await db
-        .delete(t.webhookReceipts)
-        .where(lt(t.webhookReceipts.createdAt, history));
-      const metricDate = new Date(Date.now() - 365 * 86400_000)
-        .toISOString()
-        .slice(0, 10);
-      // Keep minimal event identities through imports and any stalled live cursor.
-      await db
-        .delete(m.monitorEvents)
-        .where(
-          and(
-            lt(
-              m.monitorEvents.occurredAt,
-              new Date(Date.now() - 365 * 86400_000),
-            ),
-            sql`not exists (select 1 from ${m.monitorStates} s join ${t.sources} src on src.id = s.source_id where src.project_id = ${m.monitorEvents.projectId} and (s.history_done = false or s.live_from <= ${m.monitorEvents.occurredAt} + interval '5 minutes'))`,
-          ),
-        );
-      await db
-        .delete(m.monitorMetrics)
-        .where(sql`(${m.monitorMetrics.query}->>'from') < ${metricDate}`);
-      await db
-        .delete(m.monitorSeries)
-        .where(lt(m.monitorSeries.date, metricDate));
-      await db
-        .update(m.monitorEvents)
-        .set({ amount: null, currency: null })
-        .where(lt(m.monitorEvents.occurredAt, history));
-      await db
-        .delete(m.monitorInbox)
-        .where(
-          and(
-            lt(m.monitorInbox.createdAt, history),
-            sql`not exists (select 1 from ${t.jobs} j where j.payload->>'inboxId' = ${m.monitorInbox.id}::text and j.status in ('pending', 'running'))`,
-          ),
-        );
-      await db.delete(t.metrics).where(lt(t.metrics.date, metricDate));
-      await db.delete(t.reports).where(lt(t.reports.date, metricDate));
+      return cleanup(db);
+    },
+    async reserveDueJobs(limit) {
+      return db.transaction(async (tx) => {
+        const rows = await tx
+          .select({ id: t.jobs.id })
+          .from(t.jobs)
+          .where(
+            sql`${t.jobs.status} in ('pending','running') and ${t.jobs.dueAt} <= now()
+            and (${t.jobs.leaseUntil} is null or ${t.jobs.leaseUntil} < now())
+            and (${t.jobs.dispatchedAt} is null or ${t.jobs.dispatchedAt} < now() - interval '2 minutes')`,
+          )
+          .orderBy(t.jobs.dueAt, t.jobs.id)
+          .limit(limit)
+          .for("update", { skipLocked: true });
+        const ids = rows.map((row) => row.id);
+        if (ids.length)
+          await tx
+            .update(t.jobs)
+            .set({ dispatchedAt: new Date() })
+            .where(inArray(t.jobs.id, ids));
+        return ids;
+      });
+    },
+    async releaseDispatch(ids) {
+      if (ids.length)
+        await db
+          .update(t.jobs)
+          .set({ dispatchedAt: null })
+          .where(and(inArray(t.jobs.id, ids), eq(t.jobs.status, "pending")));
+    },
+    async jobDiagnostics() {
+      const result = await db.execute(sql`select
+        min(due_at) filter (where status='pending' and due_at <= now()) as oldest_due_at,
+        count(*) filter (where status='pending')::int as pending,
+        count(*) filter (where status='running')::int as running,
+        count(*) filter (where status='running' and lease_until < now())::int as expired_leases,
+        count(*) filter (where status='failed')::int as failed,
+        (select min(last_success_at) from ${t.sources}) as oldest_source_success_at
+        from ${t.jobs}`);
+      const row = result.rows[0];
+      return {
+        oldestDueAt: row.oldest_due_at
+          ? new Date(row.oldest_due_at as string)
+          : null,
+        pending: Number(row.pending),
+        running: Number(row.running),
+        expiredLeases: Number(row.expired_leases),
+        failed: Number(row.failed),
+        oldestSourceSuccessAt: row.oldest_source_success_at
+          ? new Date(row.oldest_source_success_at as string)
+          : null,
+      };
     },
   };
 }

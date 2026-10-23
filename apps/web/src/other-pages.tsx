@@ -13,6 +13,7 @@ import {
   Dialog,
   EmptyState,
   ErrorNotice,
+  RefreshNotice,
   Field,
   Loading,
   Logo,
@@ -71,7 +72,6 @@ export function ActivityPage() {
   return (
     <>
       <PageHeader
-        eyebrow="A LITTLE HISTORY"
         title="Every signal, accounted for."
         description="Follow notifications from collection to delivery. History is kept for 30 days."
       />
@@ -82,6 +82,7 @@ export function ActivityPage() {
           aren’t blindly resent.
         </Notice>
       </div>
+      <RefreshNotice error={query.error} dataUpdatedAt={query.dataUpdatedAt} />
       <ActivityList deliveries={query.data.deliveries} />
     </>
   );
@@ -105,7 +106,6 @@ export function SettingsPage({ logout }: { logout: () => Promise<void> }) {
   return (
     <>
       <PageHeader
-        eyebrow="MAKE YOURSELF AT HOME"
         title="Your workspace."
         description="A few details about your Signs of Life installation."
       />
@@ -127,7 +127,7 @@ export function SettingsPage({ logout }: { logout: () => Promise<void> }) {
           <dt className="muted">Event and delivery history</dt>
           <dd>30 days</dd>
           <dt className="muted">Download history</dt>
-          <dd>90 days</dd>
+          <dd>365 days</dd>
           <dt className="muted">License</dt>
           <dd>AGPL-3.0-only</dd>
           <dt className="muted">Source</dt>

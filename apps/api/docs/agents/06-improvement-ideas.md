@@ -1,6 +1,9 @@
 # API runtime improvement ideas
 
-## Planned/aspirational
+## Implemented today
 
-No additional app-local improvement is prioritized after inspection. Shared configuration/route issues belong in backend or db logs.
-New entries should record idea, impact, rough effort, affected area and open/in-progress/done status; avoid copying cross-project backlogs.
+| Idea                                          | Impact                                                                                                                                                                         | Effort | Area        | Status |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ----------- | ------ |
+| Drain HTTP requests before closing PostgreSQL | Avoid interrupted in-flight mutations during Node shutdown/redeployment; await server.close, then close the pool, with a bounded drain deadline and idempotent signal handling | Small  | src/node.ts | done   |
+
+The runtime regression holds an actual local HTTP request open during shutdown, verifies the database remains available, and verifies repeated shutdown calls exit once. Schema-aware readiness belongs to backend/db and remains distinct from provider acceptance.

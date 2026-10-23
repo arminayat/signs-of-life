@@ -8,7 +8,7 @@ No route registration, scheduler or application monitoring-table persistence her
 
 ## Planned/aspirational
 
-Telegram groups and arbitrary customer database querying are not present. Authentication's current dependency boundary is tracked at workspace level.
+Telegram groups and arbitrary customer database querying are not present. Authentication's contract is owned by core; this package implements it using a minimal adapter-owned configuration type.
 
 ## Implemented today — expanded monitoring
 

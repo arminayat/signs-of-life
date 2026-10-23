@@ -4,6 +4,8 @@
 
 - src/node.ts: Node direct-claim worker loop.
 - src/cloudflare.ts: Cron dispatcher and Queue consumer.
+- src/dispatch.ts: bounded publication of database-reserved job batches.
+- src/maintenance.ts: cleanup isolation/backlog drain and persisted health logging.
 - wrangler.jsonc: checked-in deployment config.
 - worker-configuration.d.ts: binding declarations referenced by entrypoint.
 - package.json: private workspace marker; AGENTS.md/docs/agents/: memory.

@@ -1,4 +1,3 @@
-import { fromZonedTime } from "date-fns-tz";
 import { monitoringSummary } from "./monitoring-summary";
 import type { AppleCredentials } from "../../core/src/model";
 import type { Job } from "../../core/src/store";
@@ -6,6 +5,7 @@ import type { Services } from "./services";
 import { connectionFor, supabaseAccess } from "./services";
 import { emptyCursor } from "../../adapters/src/supabase-source";
 import { reportingDates, dailyReady, localDay } from "../../core/src/time";
+import { fromZonedTime } from "date-fns-tz";
 export async function collectAccounts(
   services: Services,
   job: Job,
@@ -49,15 +49,20 @@ export async function collectAccounts(
       source,
       rows.filter((row) => new Date(row.createdAt) >= source.baseline),
       next,
+      job,
     );
     cursor = next;
     if (rows.length < 500) {
-      await store.recordAccounts(source, [], emptyCursor(until));
-      await store.updateConnection(connection.id, {
-        lastSuccessAt: new Date(),
-        lastError: null,
-        status: "connected",
-      });
+      await store.recordAccounts(source, [], emptyCursor(until), job);
+      await store.updateConnectionHealth(
+        connection.id,
+        {
+          lastSuccessAt: new Date(),
+          lastError: null,
+          status: "connected",
+        },
+        job,
+      );
       return new Date(Date.now() + 300_000);
     }
   }
@@ -88,12 +93,17 @@ export async function collectApple(
       connection,
       date,
       await services.reports.report(credentials, date),
+      job,
     );
-  await services.store.updateConnection(connection.id, {
-    status: "connected",
-    lastError: null,
-    lastSuccessAt: new Date(),
-  });
+  await services.store.updateConnectionHealth(
+    connection.id,
+    {
+      status: "connected",
+      lastError: null,
+      lastSuccessAt: new Date(),
+    },
+    job,
+  );
   return new Date(Date.now() + 3600_000);
 }
 export async function dailySummary(
@@ -114,7 +124,7 @@ export async function dailySummary(
   if (scheduled > now && scheduled < next) next.setTime(scheduled.getTime());
   if (!project.enabled || !dailyReady(now, project.timezone, project.dailyTime))
     return next;
-  await monitoringSummary(services, project, now);
+  await monitoringSummary(services, project, now, job);
   const snapshot = await store.snapshot(job.workspaceId);
   const sources = snapshot.sources.filter(
     (source) =>
@@ -142,10 +152,15 @@ export async function dailySummary(
       const previous = deliveryKeys.filter((key) => key.startsWith(prefix));
       if (!metric) {
         if (date === dates[0])
-          await store.fanout(project, `${prefix}pending`, {
-            title: `Report pending · ${project.name}`,
-            text: `Apple has not published the ${date} Sales and Trends report for ${source.name}. We'll send the totals when it arrives.`,
-          });
+          await store.fanoutForJob(
+            project,
+            `${prefix}pending`,
+            {
+              title: `Report pending · ${project.name}`,
+              text: `Apple has not published the ${date} Sales and Trends report for ${source.name}. We'll send the totals when it arrives.`,
+            },
+            job,
+          );
         continue;
       }
       // Older history is imported silently; only revise dates that have been announced.
@@ -156,10 +171,15 @@ export async function dailySummary(
           !key.endsWith(":pending") &&
           key !== `${prefix}r${metric.revision}:${totals}`,
       );
-      await store.fanout(project, `${prefix}r${metric.revision}:${totals}`, {
-        title: `${corrected ? "Corrected downloads" : "Daily downloads"} · ${project.name}`,
-        text: `${source.name} · ${date}\n${metric.downloads} initial downloads\n${metric.redownloads} redownloads\nSource: Apple Sales and Trends (Apple reporting date).`,
-      });
+      await store.fanoutForJob(
+        project,
+        `${prefix}r${metric.revision}:${totals}`,
+        {
+          title: `${corrected ? "Corrected downloads" : "Daily downloads"} · ${project.name}`,
+          text: `${source.name} · ${date}\n${metric.downloads} initial downloads\n${metric.redownloads} redownloads\nSource: Apple Sales and Trends (Apple reporting date).`,
+        },
+        job,
+      );
     }
   }
   return next;

@@ -2,7 +2,7 @@
 
 ## Implemented today
 
-Node composition is process-long; Cloudflare composition is per request. APIBindings are referenced through worker-configuration.d.ts and ExportedHandler. Node-only dependencies enter through backend/node.ts.
+Node composition is process-long; shutdown drains HTTP before closing the database and is bounded to 30 seconds. Root Compose supplies 35 seconds termination grace and uses schema-aware readiness for its health check; Cloudflare composition is per request. APIBindings are referenced through worker-configuration.d.ts and ExportedHandler. Node-only dependencies enter through backend/node.ts.
 
 ## Planned/aspirational — maintenance rules
 

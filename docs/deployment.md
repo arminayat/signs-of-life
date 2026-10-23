@@ -1,6 +1,6 @@
 # Deployment
 
-Use separate integration credentials and encryption keys for each installation. Configure one canonical `PUBLIC_URL`; all UI, auth and API routes share that origin.
+Use separate integration credentials and encryption keys for each installation. Configure one canonical `PUBLIC_URL`; all application UI, auth and API routes share that origin. The public landing page is a separate static deployment and links to that application origin.
 
 Existing installations must follow the [Signs of Life rename guide](renaming.md)
 before upgrading; it covers database schemas, Docker volumes, cookies and hosted resources.
@@ -27,11 +27,11 @@ Mailpit opens at `http://localhost:8025`. Use an HTTPS reverse proxy and a real 
 
 An external PostgreSQL host works with the same API/job containers: supply its `DATABASE_URL` when running those containers, run the migration once, and omit the bundled database service. The repository's default Compose file provisions its own database. No Redis or external queue is required.
 
-Check `/api/health` for process health and `/api/ready` for a database-backed readiness check. Verify login and a real notification separately.
+Check `/api/health` for process health and `/api/ready` for database connectivity and the migration ledger version required by the build. Verify login and a real notification separately.
 
 ## Cloudflare
 
-The hosted deployment consists of three Workers:
+The application deployment consists of three Workers:
 
 1. `signs-of-life-api`: Hono with a Hyperdrive database binding.
 2. `signs-of-life-jobs`: Cron/Queues with the same Hyperdrive configuration.
@@ -58,6 +58,27 @@ The API and job Workers have `workers_dev=false`; the public web Worker forwards
 Secrets include `AUTH_SECRET`, `ENCRYPTION_KEYS`, provider credentials and webhook signing secrets. Use `wrangler secret put` or bulk input from an untracked file. Never put them in `vars` or inline shell arguments. API and job hosts must agree on encryption keys, auth session version and unsubscribe signing secret. Jobs do not need GitHub OAuth credentials.
 
 The one-minute Cron trigger redispatches abandoned jobs from PostgreSQL. Monitor recent source errors, overdue jobs, queue failures and uncertain deliveries. Queue acceptance is not job completion; `/api/health` alone is not live acceptance.
+
+Completed account polls and daily-summary readiness checks use a five-minute recurrence. Keep the one-minute Cron for prompt verification, notification, webhook and recovery dispatch; it only publishes jobs whose persisted due time has arrived. Publication already batches up to 100 messages, and consumers receive up to three messages per invocation. Cloudflare bills each message's write/read/delete operations even in a batch, so fewer recurring jobs reduce Queue usage; larger transport batches alone do not. The cadence change needs a jobs Worker deployment (or Node worker restart) and a web deployment for the updated setup copy. It adds no migration, environment variable or queue configuration. Existing jobs adopt the new interval after their next successful run. Verify actual Queue operations and application job health after rollout.
+
+### Public landing page — implemented today
+
+The web project also owns a standalone static landing page in `apps/web/landing`. Its separate Vite build writes `apps/web/dist-landing`; the `signs-of-life-landing` assets Worker uses `apps/web/wrangler.landing.jsonc`. The configured hostname follows the requested `soll.arminayat.dev`. The existing application remains at `sol.arminayat.dev`.
+
+Run `pnpm dev:landing` for local development at `http://127.0.0.1:5174`. It needs no API or database. `pnpm build` includes both frontend builds, while `pnpm build:landing` builds only the landing page. The landing page has no service bindings, secrets, environment variables or migrations; its sign-in links open the application. Keep its static `_headers` policy aligned with the dashboard's security policy and serve fonts/images locally.
+
+Release the landing page independently:
+
+```sh
+pnpm check
+pnpm exec wrangler deploy --dry-run --config apps/web/wrangler.landing.jsonc
+git diff --check
+CLOUDFLARE_AUTH_USE_KEYRING=false pnpm exec wrangler deploy --profile signs-of-life-release --config apps/web/wrangler.landing.jsonc
+```
+
+The named profile is the maintained installation's existing Wrangler authentication workaround; other installations should use their own authorized Cloudflare account and hostname. Deployment of this assets Worker does not deploy API/jobs/dashboard changes. Verify the public HTML, CSS, favicon and security headers after release; browser testing still requires task authorization. The supplied Docker application stack does not serve this separate landing build.
+
+The 2026-10-23 landing release is live at `https://soll.arminayat.dev/`; HTTPS, exact asset bytes, security headers and links were checked over HTTP. See [status](status.md#public-landing-page--2026-10-23) for the evidence and unperformed browser gate. No API/jobs/dashboard deployment or database migration was part of that release.
 
 ## Switching database hosts
 
@@ -103,6 +124,20 @@ Apply additive migrations 0005–0010, configure optional OAuth registration pai
 
 ## Five-minute polling release
 
-Completed account polls and daily-summary readiness checks repeat after five minutes. Daily checks are capped at the upcoming local daily time so a late-night report is not skipped. Keep the one-minute Cron for notification, webhook, import and recovery responsiveness; it publishes only due work. Publication uses one sendBatch for up to 100 distinct messages, and consumers retain batches of three. Cloudflare still bills each message's operations individually. The longer polling interval reduces message volume; batching reduces publication overhead.
+Completed account polls and daily-summary readiness checks repeat after five minutes. Daily checks are capped at the upcoming local daily time so a late-night report is not skipped. Keep the one-minute Cron for notification, webhook, import and recovery responsiveness; it publishes only due work. Publication uses bounded sendBatch calls for up to 100 distinct messages per batch, and consumers retain batches of three. Cloudflare still bills each message's operations individually. The longer polling interval reduces message volume; batching reduces publication overhead.
 
 Deploy jobs and web for this change. No migration, environment variable, API rollout or queue setting is required. Existing jobs adopt the interval after their next successful run. Cloudflare's minute tick can add up to a minute plus processing time; measure actual operation usage after rollout.
+## Reliability upgrade — implementation ready, rollout pending
+
+Apply migrations **0012_workflow_reliability** and **0013_account_overview** using `pnpm db:migrate`, then deploy compatible API/jobs/web builds together. The first indexes observation event provenance; the second indexes non-anonymous accounts by source and occurrence time. Both preserve records. Standard index creation can hold write locks; plan a maintenance window appropriate to table size. New API readiness stays unsuccessful on an older migration ledger. If migration and runtime roles differ, grant the runtime role read access to the ledger (replace `app_runtime` with the actual role):
+
+```sql
+GRANT USAGE ON SCHEMA signs_of_life_migrations TO app_runtime;
+GRANT SELECT ON signs_of_life_migrations.__drizzle_migrations TO app_runtime;
+```
+
+Do not grant migration/schema-write privileges to the runtime role. No new environment variables, runtime bindings or provider scopes are required.
+
+Allow at least 30 seconds termination grace for the Node API so it can drain requests and close the database. The supplied Compose stack uses 35 seconds and checks `/api/ready` before starting the web service. Rebuild/distribute the Better Auth connector where installed to gain normalized timestamp continuation; packaging is included in `pnpm build`, publication is separate.
+
+Before rollout run `pnpm check` against an isolated loopback `_test` database, or `pnpm check:isolated` with PostgreSQL server tools on PATH. Run API/jobs/web Worker bundle dry runs for Cloudflare. Browser testing requires task authorization; no browser or live provider acceptance was performed for this implementation. After rollout independently verify schema readiness, collection progress, backlog diagnostics and actual destination receipt.

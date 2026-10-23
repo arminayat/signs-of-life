@@ -10,7 +10,7 @@ import type {
 import { AppError, assert } from "../../core/src/model";
 import type { Connection, MonitorStore } from "../../core/src/store";
 import type { Config } from "./config";
-import type { Authentication } from "../../adapters/src/auth";
+import type { Authentication } from "../../core/src/authentication";
 import {
   exchangeSupabase,
   type SupabaseOAuthConfig,
@@ -58,12 +58,8 @@ export async function supabaseAccess(
     connection.id,
   );
   if (tokens.expires_at > Date.now() + 60_000) return tokens.access_token;
-  if (
-    !(await services.store.refreshLock(
-      connection.id,
-      new Date(Date.now() + 60_000),
-    ))
-  )
+  const lease = new Date(Date.now() + 60_000);
+  if (!(await services.store.refreshLock(connection.id, lease)))
     throw new AppError("token_refresh_in_progress", 409);
   try {
     const latest = await connectionFor(
@@ -82,15 +78,17 @@ export async function supabaseAccess(
       { refreshToken: current.refresh_token },
       services.http,
     );
-    await services.store.updateConnection(connection.id, {
-      secret: await services.secrets.seal(refreshed, connection.id),
-      status: "connected",
-      lastError: null,
-    });
+    assert(
+      await services.store.replaceMonitorSecret(
+        latest,
+        await services.secrets.seal(refreshed, connection.id),
+        lease,
+      ),
+      "connection_changed_during_refresh",
+      409,
+    );
     return refreshed.access_token;
   } finally {
-    await services.store.updateConnection(connection.id, {
-      refreshLease: null,
-    });
+    await services.store.releaseMonitorRefresh(connection.id, lease);
   }
 }
