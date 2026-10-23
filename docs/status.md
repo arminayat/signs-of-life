@@ -121,3 +121,19 @@ Fixtures, dry runs and provider acceptance responses do not satisfy these live c
 - Configure optional installation OAuth client pairs on API/jobs and `MONITOR_ALLOWED_HOSTS` for Better Auth. Customer keys, webhook registration, connector installation and notification-channel setup remain external steps in [Monitoring integrations](monitoring-integrations.md). No npm publication or new provider credential registration was performed.
 - **0/10 new providers are live-verified.** Each still needs a real isolated connection/catalog/read and relevant webhook/new-account/report acceptance; fixtures do not establish provider plan access or receipt at a notification destination.
 - RevenueCat's API has no project-wide historical billing-event feed: native charts provide history, while events require webhooks and missed event payloads cannot be reconstructed from aggregates. Other provider retention limits and incomplete deleted-user history remain explicit. No invented Stripe MRR/churn, email matching or aggregate grand total is included.
+
+## Queue efficiency release — 2026-10-23
+
+### Implemented and deployed
+
+- Released scoped commit `e2de8d3d75faf87d19f00c839a8f9d8ec98397b7` from an isolated checkout of `main`, preserving unrelated uncommitted reliability and landing work. Completed account polling and daily-summary readiness now recur after five minutes; the upcoming exact local daily time caps a daily delay to preserve late-night reports. Catch-up pages, hourly aggregates and the minute dispatcher keep their existing schedules.
+- Production previously sent due IDs individually. This release publishes up to 100 due messages with `sendBatch`, then marks each dispatched after successful publication. The consumer still receives up to three messages. Batching reduces publication overhead; Queue billing remains per message. The broader local reservation/maintenance overhaul is not part of this release.
+- Jobs version `7977251e-c120-4880-aea0-a10b2d45dae5` and web version `b37402c8-aa02-4020-a44b-61ff61751678` serve this release at 100%. API version `633fd311-c405-46a2-aca4-e77a14d024de` remains on `93f647b`; its older public revision is expected. No migration, credential, queue setting, API or landing deployment occurred.
+
+### Verification and limits
+
+- Isolated release checks passed TypeScript, **253 tests in 27 files**, connector/web production builds, jobs/web Worker dry runs and `git diff --check`. The temporary PostgreSQL cluster was removed. New regressions cover completed/partial/history cadence, local midnight/DST, empty queue scans and failed batch publication.
+- [GitHub Check run 39973816080](https://github.com/arminayat/signs-of-life/actions/runs/39973816080) passed for the exact release SHA, including its existing fixture E2E and container checks. No local or live browser testing was performed.
+- Cloudflare deployment readback confirms 100% traffic and the jobs revision. Binding metadata matches the pre-release snapshot except intended jobs BUILD_REVISION/SOURCE_URL updates. The one-minute Cron is unchanged. HTTPS health/readiness returned 200; hosted HTML, JavaScript, CSS and favicon matched release-build hashes, including the updated five-minute setup text.
+- At 15:00 UTC, queue backlog was zero. A bounded live tail captured one successful queue invocation with no exceptions, warning logs or error logs. This does not establish every provider's health or recipient delivery.
+- Existing recurring jobs adopt the new interval on their next successful run. Daily usage reduction has not yet been measured over a representative post-release interval.
