@@ -17,3 +17,5 @@
 - **Resolved test-isolation issue:** static fake webhook URLs hit the global recipient throttle when the lifecycle suite is rerun → workspace cleanup intentionally does not remove recipient rate-limit keys → tests generate unique provider-shaped URLs per fixture while preserving production throttling. Verified with consecutive webhook-destination suites.
 
 - **Resolved/covered:** Discord could render underscores in verification codes as Markdown emphasis, making the copied code incorrect → Discord verification messages wrap only the code in inline-code formatting; Slack retains plain text with Markdown disabled → webhook-destination regression verifies an underscore-bearing code is preserved and confirms successfully.
+
+- **Resolved in source: needless minute recurrence.** Completed account polls and daily-summary readiness wait five minutes; catch-up pages keep their existing fast continuation. The upcoming exact local daily time caps a daily delay to avoid skipping 23:59. `tests/monitoring-cadence.test.ts` covers completion, backlog, historical termination, midnight and DST. Actual usage savings require post-deployment measurement.

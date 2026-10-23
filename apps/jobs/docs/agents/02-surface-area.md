@@ -5,7 +5,7 @@
 | Source / entry              | Inputs and behavior                                       | Mutations / external calls                                                                                                 |
 | --------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | src/node.ts loop            | nodeServices + runOne; idle waits 1s; loop error waits 5s | Claims/executes DB jobs; runs cleanup initially and hourly; logs stable failure event; closes on signal exit               |
-| src/cloudflare.ts scheduled | scheduledTime and JobBindings                             | Cleanup at UTC minute 0; reads <=100 due IDs, JOBS.send({id}) then markDispatched; closes DB in finally                    |
+| src/cloudflare.ts scheduled | scheduledTime and JobBindings                             | Cleanup at UTC minute 0; reads <=100 due IDs, JOBS.sendBatch then markDispatched after publication; closes DB in finally                    |
 | src/cloudflare.ts queue     | Queue batch                                               | Invalid body without string id is acked; valid ID calls runOne then ack; uncaught exception retries after 30s; closes pool |
 | wrangler.jsonc              | Every-minute Cron, JOBS producer/consumer                 | Batch size 3, batch timeout 5s, 3 queue retries, dead-letter queue                                                         |
 

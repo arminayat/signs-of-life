@@ -146,12 +146,7 @@ export async function collectMonitor(
   if (!page.done) return new Date(Date.now() + 3000);
   await refreshViews(services, source, historical, credentials);
   if (historical) return;
-  const auth = ["better-auth", "workos", "clerk", "auth0"].includes(
-    source.kind,
-  );
-  return new Date(
-    Date.now() + (auth ? 60_000 : adapter.collect ? 300_000 : 3600_000),
-  );
+  return new Date(Date.now() + (adapter.collect ? 300_000 : 3600_000));
 }
 export async function collectMetric(
   services: Services,

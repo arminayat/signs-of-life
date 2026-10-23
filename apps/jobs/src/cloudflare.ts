@@ -16,9 +16,12 @@ export default {
     try {
       if (new Date(event.scheduledTime).getUTCMinutes() === 0)
         await services.store.cleanup();
-      for (const id of await services.store.dueJobs(100)) {
-        await env.JOBS.send({ id });
-        await services.store.markDispatched(id);
+      const ids = await services.store.dueJobs(100);
+      if (ids.length) {
+        await env.JOBS.sendBatch(
+          ids.map((id) => ({ body: { id }, contentType: "json" })),
+        );
+        for (const id of ids) await services.store.markDispatched(id);
       }
     } finally {
       await close();

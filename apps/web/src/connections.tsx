@@ -66,7 +66,7 @@ export function ProjectConnections({
             project, and you’re connected.
           </p>
           <p className="muted text-xs">
-            Read-only · About every minute · No database changes
+            Read-only · About every 5 minutes · No database changes
           </p>
           <Button
             className="mt-auto"

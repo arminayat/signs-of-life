@@ -100,3 +100,9 @@ Apply migration `0011_webhook_destinations` with `pnpm db:migrate` before upgrad
 ## Planned/aspirational — ten-provider rollout
 
 Apply additive migrations 0005–0010, configure optional OAuth registration pairs and MONITOR_ALLOWED_HOSTS on API and jobs, and deploy compatible API/jobs/web revisions together. Existing MAX_SOURCES overrides remain valid; the default is 25. Follow [the monitoring release procedure](monitoring-integrations.md#plannedaspirational--coordinated-release-and-live-acceptance). Browser tests were not authorized for this implementation; external registrations, deployment and real provider acceptance remain separate gates.
+
+## Five-minute polling release
+
+Completed account polls and daily-summary readiness checks repeat after five minutes. Daily checks are capped at the upcoming local daily time so a late-night report is not skipped. Keep the one-minute Cron for notification, webhook, import and recovery responsiveness; it publishes only due work. Publication uses one sendBatch for up to 100 distinct messages, and consumers retain batches of three. Cloudflare still bills each message's operations individually. The longer polling interval reduces message volume; batching reduces publication overhead.
+
+Deploy jobs and web for this change. No migration, environment variable, API rollout or queue setting is required. Existing jobs adopt the interval after their next successful run. Cloudflare's minute tick can add up to a minute plus processing time; measure actual operation usage after rollout.

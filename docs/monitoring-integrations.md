@@ -100,7 +100,7 @@ Probe `GET <auth-base>/signs-of-life/v1/users?limit=1` with the dedicated Bearer
 
 ## Implemented today — collection, dashboard and retention
 
-Auth polling targets one minute; billing webhook reconciliation targets five minutes; aggregate-only providers and selected dashboard reports refresh hourly. Actual timing depends on queued work and rate limits. Persisted jobs/leases recover restarts, and provider Retry-After defers further requests. Imports use independent opaque cursors and remain silent. Apple reconnect resumes collection; migration 0006 repairs missing daily jobs on previously imported projects.
+Auth polling and billing webhook reconciliation target five minutes; aggregate-only providers and selected dashboard reports refresh hourly. Actual timing depends on queued work and rate limits. Persisted jobs/leases recover restarts, and provider Retry-After defers further requests. Imports use independent opaque cursors and remain silent. Apple reconnect resumes collection; migration 0006 repairs missing daily jobs on previously imported projects.
 
 Overview has Growth, Revenue and Usage sections. Select supported source reports, apply advertised filters, hide/reorder/remove views, and use 7/30/90/365 days or a custom retained range. Exact-value tables accompany charts. Provider definitions, reporting timezone, units/currency, freshness, coverage and unsupported/partial states remain visible. Period unique users and conversion rates come from providers, never daily sums. No arbitrary SQL, formulas, cross-provider funnel or currency conversion is offered.
 

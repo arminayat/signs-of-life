@@ -1,3 +1,4 @@
+import { fromZonedTime } from "date-fns-tz";
 import { monitoringSummary } from "./monitoring-summary";
 import type { AppleCredentials } from "../../core/src/model";
 import type { Job } from "../../core/src/store";
@@ -57,7 +58,7 @@ export async function collectAccounts(
         lastError: null,
         status: "connected",
       });
-      return new Date(Date.now() + 60_000);
+      return new Date(Date.now() + 300_000);
     }
   }
   return new Date(Date.now() + 1000);
@@ -104,7 +105,13 @@ export async function dailySummary(
   const { store } = services;
   const project = await store.project(job.workspaceId, projectId);
   if (!project) return;
-  const next = new Date(now.getTime() + 60_000);
+  const next = new Date(now.getTime() + 300_000);
+  const scheduled = fromZonedTime(
+    `${localDay(now, project.timezone)}T${project.dailyTime}:00`,
+    project.timezone,
+  );
+  // Do not skip a late daily time (for example 23:59) by crossing midnight.
+  if (scheduled > now && scheduled < next) next.setTime(scheduled.getTime());
   if (!project.enabled || !dailyReady(now, project.timezone, project.dailyTime))
     return next;
   await monitoringSummary(services, project, now);

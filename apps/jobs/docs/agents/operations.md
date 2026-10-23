@@ -13,3 +13,5 @@ Follow root docs/deployment.md for migrations, shared encryption keys and provid
 ## Implemented today — monitoring rollout
 
 Both runtime configurations enable nodejs_compat and global_fetch_strictly_public. New OAuth client settings must be available to API and jobs for refresh; Better Auth hosts need MONITOR_ALLOWED_HOSTS. Apply additive migrations 0005–0010 before compatible API/jobs/web deployment. See root docs/monitoring-integrations.md for registration and live acceptance requirements.
+
+Implemented today: account polling and daily-summary readiness recur every five minutes in the backend; the minute Cron only dispatches due jobs. Empty scans publish nothing. Publication batches at most 100 messages and marks each dispatched only after sendBatch resolves; failure leaves due jobs eligible for recovery. A lost acknowledgement or interrupted marking may produce duplicate hints, which the existing job claims tolerate. Consumer batches remain three; batching reduces invocation/request overhead, not per-message Queue billing. No cadence-specific migration or variable is required.

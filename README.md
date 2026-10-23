@@ -7,7 +7,7 @@ to preserve your database and deployment resources.
 
 Open-source account alerts and download reports for people building more than one thing. Organize products into projects, connect their data sources, and receive updates through Telegram, email, Slack or Discord.
 
-- **Supabase:** OAuth connection and read-only account polling, approximately once a minute. No hooks, database changes, or monitored user email collection.
+- **Supabase:** OAuth connection and read-only account polling, approximately every five minutes. No hooks, database changes, or monitored user email collection.
 - **App Store Connect:** initial downloads and redownloads from Sales and Trends, with pending-report handling and corrections.
 - **Google Play Console:** device installs, uninstalls and country-specific ratings from read-only bulk reports; delayed reports stay pending.
 - **Telegram, email, Slack and Discord:** verified destinations, per-project routing, test messages, pause controls and independent delivery history.
