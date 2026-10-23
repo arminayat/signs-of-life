@@ -34,3 +34,5 @@ For a new child, first establish actual manifest/source and responsibility, then
 Root pnpm build/check includes the independently packaged Better Auth connector build. Its prepack cleans only its generated dist directory, then emits ESM/declarations and includes LICENSE. Run pnpm test (not bare vitest) to load test environment variables. Every new provider needs a real connection/read smoke test before live-verified status; automated fixture evidence is recorded separately in docs/status.md.
 
 The supplied Compose API service checks schema-aware `/api/ready` and allows 35 seconds to stop, covering the Node API's 30-second bounded shutdown. Other process hosts should provide equivalent termination grace.
+
+Implemented today: CI rewrites the GitHub runner's slow Azure Ubuntu package mirror to the official HTTPS archive before installing Chromium system dependencies. The browser suite and all bundle/container checks remain enabled; this runner-only workaround does not change application dependencies.

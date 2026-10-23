@@ -13,6 +13,8 @@
 - **Verified Wrangler authentication workaround:** macOS Keychain exit 51 prevented both reading the existing profile and saving a fresh OAuth key. A separately authorized named profile stored in an owner-only plaintext file successfully deployed all three Workers. Keep the global Keychain setting unchanged; select the named profile and set `CLOUDFLARE_AUTH_USE_KEYRING=false` for each command using that profile. A normal command without this override may still hit the Keychain failure. Plaintext storage requires operator consent; this workaround does not repair the macOS Keychain itself.
   Wrangler 4.130.0 accepts `--profile` for deployment but rejects it for `whoami`; use the repository-bound active profile for that read-only command. The existing profile also deployed the separate landing assets Worker; no new credentials were created.
 
+- **CI dependency-download delay:** GitHub runner package installation can remain in progress while the Ubuntu mirror downloads required Chromium system packages slowly. Inspect completed/cancelled job logs before treating the delay as an application failure; the workflow redirects the observed Azure mirror entry to Ubuntu's official HTTPS archive before installing dependencies, retaining all test gates. A fresh-runner retry alone did not remove the delay during the release. This is distinct from local or live browser acceptance.
+
 ## Planned/aspirational — log maintenance
 
 Each new entry needs symptom → root cause → actual fix/workaround (or explicitly none) → prevention and status. Do not label an untested proposal resolved; prune obsolete entries.
