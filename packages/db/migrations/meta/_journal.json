@@ -99,6 +99,13 @@
       "when": 1792703191898,
       "tag": "0013_account_overview",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795469067245,
+      "tag": "0014_app_store_days",
+      "breakpoints": true
     }
   ]
 }

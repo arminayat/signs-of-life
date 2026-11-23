@@ -50,7 +50,7 @@ describe("source normalization", () => {
       { id: "one", name: "App", organizationName: null },
     ]);
   });
-  it("separates initial downloads and redownloads and ignores non-download products and refunds", () => {
+  it("separates initial downloads and redownloads and keeps updates, other products and refunds out of them", () => {
     const report =
       headers +
       "\n" +
@@ -64,8 +64,14 @@ describe("source normalization", () => {
         "1\tExample\t1-B\t10",
         "1\tExample\t1\t-2",
       ].join("\n");
-    expect(parseSalesReport(report)).toEqual([
-      { appId: "1", title: "Example", downloads: 6, redownloads: 4 },
+    expect(parseSalesReport(report)).toMatchObject([
+      {
+        appId: "1",
+        title: "Example",
+        downloads: 6,
+        redownloads: 4,
+        sales: { downloads: 6, redownloads: 4, updates: 40, refunds: 2 },
+      },
     ]);
   });
   it("treats missing and expired Apple reports as unavailable", async () => {

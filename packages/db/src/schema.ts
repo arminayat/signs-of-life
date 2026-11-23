@@ -20,6 +20,10 @@ import type {
   SourceKind,
   ChannelKind,
 } from "../../core/src/model";
+import type {
+  AppStoreSales,
+  AppStoreSubscriptions,
+} from "../../core/src/app-store";
 export const appSchema = pgSchema("signs_of_life");
 const id = () => uuid("id").primaryKey().defaultRandom();
 const created = () =>
@@ -228,6 +232,24 @@ export const reports = appSchema.table(
       .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.date] })],
+);
+/** Per-app App Store breakdown for one Apple reporting date. A row marks the
+ * date as fetched; a null column means Apple had no such report. */
+export const appStoreDays = appSchema.table(
+  "app_store_days",
+  {
+    workspaceId: workspace(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    sales: jsonb("sales").$type<AppStoreSales>(),
+    subscriptions: jsonb("subscriptions").$type<AppStoreSubscriptions>(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sourceId, t.date] })],
 );
 export const deliveries = appSchema.table(
   "deliveries",

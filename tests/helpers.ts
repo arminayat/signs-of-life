@@ -13,6 +13,7 @@ export const testUrl = testDatabaseUrl();
 const fencedMethods = [
   "recordAccounts",
   "saveReport",
+  "saveSubscriptions",
   "saveMetric",
   "saveMonitorPage",
   "sourceError",
@@ -86,7 +87,16 @@ export async function fixture(
       handle: async () => new Response(null, { status: 404 }),
     },
     accounts: { collect: async () => [] },
-    reports: { report: async () => [] },
+    reports: {
+      report: async () => [],
+      subscriptions: async () => null,
+      listing: async () => ({
+        storeUrl: null,
+        versions: null,
+        reviews: null,
+        ratings: [],
+      }),
+    },
     channels: {
       email: {
         send: async () => ({

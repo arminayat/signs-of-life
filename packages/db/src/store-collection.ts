@@ -3,7 +3,13 @@ import type { Database } from "./client";
 import * as t from "./schema";
 import type { MonitorStore } from "../../core/src/store";
 import { fanoutMany } from "./store-delivery";
-import { lockJob, lockConnection, lockSource } from "./store-guards";
+import {
+  lockConnection,
+  lockConnectionSources,
+  lockJob,
+  lockSource,
+} from "./store-guards";
+import { appSales, appSubscriptions, saveAppStoreDay } from "./store-app-store";
 import { shortAccount } from "../../core/src/time";
 export function collectionStore(
   db: Database,
@@ -68,37 +74,8 @@ export function collectionStore(
     async saveReport(connection, date, metrics, job) {
       await db.transaction(async (tx) => {
         await lockJob(tx, job, connection.workspaceId);
-        // Legacy connections can span projects. Lock their parents before the
-        // connection/source children so project deletion cannot invert order.
-        const parents = await tx
-          .select({ id: t.sources.projectId })
-          .from(t.sources)
-          .where(
-            and(
-              eq(t.sources.connectionId, connection.id),
-              eq(t.sources.workspaceId, connection.workspaceId),
-            ),
-          );
-        const projectIds = [
-          ...new Set([
-            ...parents.map((row) => row.id),
-            ...(connection.projectId ? [connection.projectId] : []),
-          ]),
-        ].sort();
-        if (projectIds.length)
-          await tx
-            .select({ id: t.projects.id })
-            .from(t.projects)
-            .where(
-              and(
-                eq(t.projects.workspaceId, connection.workspaceId),
-                inArray(t.projects.id, projectIds),
-              ),
-            )
-            .orderBy(t.projects.id)
-            .for("share");
-        if (!(await lockConnection(tx, connection.id, connection.workspaceId)))
-          return;
+        const sources = await lockConnectionSources(tx, connection);
+        if (!sources) return;
         await tx
           .insert(t.reports)
           .values({
@@ -114,17 +91,6 @@ export function collectionStore(
             },
           });
         if (!metrics) return;
-        const sources = await tx
-          .select()
-          .from(t.sources)
-          .where(
-            and(
-              eq(t.sources.connectionId, connection.id),
-              eq(t.sources.workspaceId, connection.workspaceId),
-            ),
-          )
-          .orderBy(t.sources.id)
-          .for("update");
         for (const source of sources) {
           const metric = metrics.find(
             (metric) => metric.appId === source.externalId,
@@ -148,6 +114,13 @@ export function collectionStore(
               },
               setWhere: sql`${t.metrics.downloads} != ${metric.downloads} or ${t.metrics.redownloads} != ${metric.redownloads}`,
             });
+          await saveAppStoreDay(
+            tx,
+            source,
+            date,
+            appSales(metrics, source.externalId),
+            null,
+          );
           await tx
             .update(t.sources)
             .set({ lastSuccessAt: new Date(), lastError: null })
@@ -157,31 +130,22 @@ export function collectionStore(
     },
     async appleHistoryDates(source, dates) {
       if (!dates.length) return [];
-      const [stored, unavailable] = await Promise.all([
-        db
-          .select({ date: t.metrics.date })
-          .from(t.metrics)
-          .where(
-            and(
-              eq(t.metrics.sourceId, source.id),
-              inArray(t.metrics.date, dates),
-            ),
-          ),
-        db
-          .select({ date: t.reports.date })
-          .from(t.reports)
-          .where(
-            and(
-              eq(t.reports.connectionId, source.connectionId),
-              eq(t.reports.status, "unavailable"),
-              inArray(t.reports.date, dates),
-            ),
-          ),
-      ]);
-      const done = new Set([...stored, ...unavailable].map((row) => row.date));
+      const done = new Set(
+        (
+          await db
+            .select({ date: t.appStoreDays.date })
+            .from(t.appStoreDays)
+            .where(
+              and(
+                eq(t.appStoreDays.sourceId, source.id),
+                inArray(t.appStoreDays.date, dates),
+              ),
+            )
+        ).map((row) => row.date),
+      );
       return dates.filter((date) => !done.has(date));
     },
-    async saveAppleHistory(source, date, metrics, job) {
+    async saveAppleHistory(source, date, metrics, subscriptions, job) {
       await db.transaction(async (tx) => {
         await lockJob(tx, job, source.workspaceId);
         // lockSource locks project and active connection before the source.
@@ -194,6 +158,14 @@ export function collectionStore(
             status: metrics ? "available" : "unavailable",
           })
           .onConflictDoNothing();
+        // The row marks the date as fetched, even when Apple had no reports.
+        await saveAppStoreDay(
+          tx,
+          source,
+          date,
+          appSales(metrics, source.externalId),
+          appSubscriptions(subscriptions, source.externalId),
+        );
         if (!metrics) return;
         const metric = metrics.find(
           (metric) => metric.appId === source.externalId,

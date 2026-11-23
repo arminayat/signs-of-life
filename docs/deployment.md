@@ -128,6 +128,16 @@ Completed account polls and daily-summary readiness checks repeat after five min
 
 Deploy jobs and web for this change. No migration, environment variable, API rollout or queue setting is required. Existing jobs adopt the interval after their next successful run. Cloudflare's minute tick can add up to a minute plus processing time; measure actual operation usage after rollout.
 
+## App Store stats upgrade
+
+Apply migration **0014_app_store_days** with `pnpm db:migrate` before deploying jobs, then API, then web. It only adds the `app_store_days` table; no existing data changes. If migration and runtime roles differ and the runtime role doesn't get default privileges on new tables, grant it access (replace `app_runtime`):
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON signs_of_life.app_store_days TO app_runtime;
+```
+
+No new environment variables, bindings or provider permissions are needed. After the jobs deploy, each connection's next hourly collection re-queues the history import for its existing App Store sources, which then fetch about three Apple reports per date for up to 358 dates. Apple rate-limits API keys per hour; a rate-limited run fails and resumes with the normal job backoff. Versions and reviews on the Stats page need a key role that can read apps; Sales-only keys still get every report-based statistic.
+
 ## Reliability upgrade — rollout procedure
 
 The maintained installation applied migrations 0012–0013, verified runtime ledger access and deployed the coordinated release on 2026-10-23. See [the release record](status.md#coordinated-reliability-and-landing-release--2026-10-23) for exact revisions and acceptance boundaries. The following procedure still applies to other installations.

@@ -88,13 +88,31 @@ export async function collectApple(
     connection.secret,
     connection.id,
   );
-  for (const date of reportingDates(new Date()))
-    await services.store.saveReport(
+  for (const date of reportingDates(new Date())) {
+    const [metrics, subscriptions] = await Promise.all([
+      services.reports.report(credentials, date),
+      services.reports.subscriptions(credentials, date),
+    ]);
+    await services.store.saveReport(connection, date, metrics, job);
+    await services.store.saveSubscriptions(
       connection,
       date,
-      await services.reports.report(credentials, date),
+      subscriptions,
       job,
     );
+  }
+  // Re-queue history that still has gaps (new breakdown fields after an
+  // upgrade, or dates a failed import skipped). Complete sources stay idle.
+  for (const source of sources)
+    if (
+      (await services.store.appleHistoryDates(source, historyDates(new Date())))
+        .length
+    )
+      await services.store.enqueue(
+        job.workspaceId,
+        `apple-history:${source.id}`,
+        { kind: "apple.history", sourceId: source.id },
+      );
   await services.store.updateConnectionHealth(
     connection.id,
     {
@@ -106,17 +124,21 @@ export async function collectApple(
   );
   return new Date(Date.now() + 3600_000);
 }
+/** Apple reporting dates older than the live window, back to Apple's one-year retention. */
+export function historyDates(now: Date) {
+  return reportingDates(now, 365).slice(reportingDates(now).length);
+}
 /**
  * Imports one source's older daily reports (days 8–365; Apple keeps a year) in
- * bounded batches. The daily summary only examines the last seven dates, so
- * this history never sends notifications.
+ * bounded batches: sales, subscriptions and subscription events. The daily
+ * summary only examines the last seven dates, so history never notifies.
  */
 export async function collectAppleHistory(
   services: Services,
   job: Job,
   sourceId: string,
   now = new Date(),
-  limit = 60,
+  limit = 40,
 ): Promise<Date | undefined> {
   const source = await services.store.source(job.workspaceId, sourceId);
   if (!source || source.kind !== "apple") return;
@@ -126,10 +148,9 @@ export async function collectAppleHistory(
     source.connectionId,
     "apple",
   );
-  const live = reportingDates(now).length;
   const pending = await services.store.appleHistoryDates(
     source,
-    reportingDates(now, 365).slice(live),
+    historyDates(now),
   );
   if (!pending.length) return;
   const credentials = await services.secrets.open<AppleCredentials>(
@@ -139,10 +160,15 @@ export async function collectAppleHistory(
   const deadline = Date.now() + 120_000;
   for (const date of pending.slice(0, limit)) {
     if (Date.now() > deadline) break;
+    const [metrics, subscriptions] = await Promise.all([
+      services.reports.report(credentials, date),
+      services.reports.subscriptions(credentials, date),
+    ]);
     await services.store.saveAppleHistory(
       source,
       date,
-      await services.reports.report(credentials, date),
+      metrics,
+      subscriptions,
       job,
     );
   }

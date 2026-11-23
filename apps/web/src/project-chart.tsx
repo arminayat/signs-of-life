@@ -6,11 +6,16 @@ export function ProjectChart({
   description,
   points,
   empty,
+  period = "day",
+  format = (value) => value.toLocaleString(),
 }: {
   title: string;
   description: string;
   points: Point[];
   empty: string;
+  /** Weekly points are labelled by the first day of the week. */
+  period?: "day" | "week";
+  format?: (value: number) => string;
 }) {
   const id = useId();
   const max = Math.max(1, ...points.map((point) => point.value ?? 0));
@@ -38,7 +43,8 @@ export function ProjectChart({
             aria-labelledby={id}
           >
             <title id={id}>
-              {title}. Daily counts; blank dates have no available data.
+              {title}. {period === "week" ? "Weekly" : "Daily"} values; blank{" "}
+              {period === "week" ? "weeks" : "dates"} have no available data.
             </title>
             {labels.map((label) => {
               const y = top + plotHeight * (1 - label / ceiling);
@@ -52,7 +58,7 @@ export function ProjectChart({
                     className="chart-grid"
                   />
                   <text x={left - 9} y={y + 4} textAnchor="end">
-                    {label}
+                    {format(label)}
                   </text>
                 </g>
               );
@@ -71,7 +77,8 @@ export function ProjectChart({
                       className={`chart-bar ${point.partial ? "partial" : ""}`}
                     >
                       <title>
-                        {point.date}: {point.value}
+                        {period === "week" ? "Week of " : ""}
+                        {point.date}: {format(point.value)}
                         {point.partial ? " (partial reports)" : ""}
                       </title>
                     </rect>
@@ -90,13 +97,15 @@ export function ProjectChart({
             })}
           </svg>
           <details className="chart-data">
-            <summary>View daily values</summary>
+            <summary>
+              View {period === "week" ? "weekly" : "daily"} values
+            </summary>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Count</th>
+                    <th>{period === "week" ? "Week of" : "Date"}</th>
+                    <th>Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,7 +115,7 @@ export function ProjectChart({
                       <td>
                         {point.value === null
                           ? "No data"
-                          : `${point.value.toLocaleString()}${point.partial ? " (partial)" : ""}`}
+                          : `${format(point.value)}${point.partial ? " (partial)" : ""}`}
                       </td>
                     </tr>
                   ))}

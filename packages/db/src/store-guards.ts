@@ -1,6 +1,6 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Transaction } from "./client";
-import type { Job } from "../../core/src/store";
+import type { Connection, Job } from "../../core/src/store";
 import { assert } from "../../core/src/model";
 import * as t from "./schema";
 
@@ -82,4 +82,55 @@ export async function lockSource(
   return (
     await tx.select().from(t.sources).where(eq(t.sources.id, id)).for("update")
   )[0];
+}
+/**
+ * Locks an Apple connection's parent projects, the active connection and then its
+ * sources for update, in that order. Returns null when the connection is inactive.
+ */
+export async function lockConnectionSources(
+  tx: Transaction,
+  connection: Connection,
+) {
+  // Legacy connections can span projects. Lock their parents before the
+  // connection/source children so project deletion cannot invert order.
+  const parents = await tx
+    .select({ id: t.sources.projectId })
+    .from(t.sources)
+    .where(
+      and(
+        eq(t.sources.connectionId, connection.id),
+        eq(t.sources.workspaceId, connection.workspaceId),
+      ),
+    );
+  const projectIds = [
+    ...new Set([
+      ...parents.map((row) => row.id),
+      ...(connection.projectId ? [connection.projectId] : []),
+    ]),
+  ].sort();
+  if (projectIds.length)
+    await tx
+      .select({ id: t.projects.id })
+      .from(t.projects)
+      .where(
+        and(
+          eq(t.projects.workspaceId, connection.workspaceId),
+          inArray(t.projects.id, projectIds),
+        ),
+      )
+      .orderBy(t.projects.id)
+      .for("share");
+  if (!(await lockConnection(tx, connection.id, connection.workspaceId)))
+    return null;
+  return tx
+    .select()
+    .from(t.sources)
+    .where(
+      and(
+        eq(t.sources.connectionId, connection.id),
+        eq(t.sources.workspaceId, connection.workspaceId),
+      ),
+    )
+    .orderBy(t.sources.id)
+    .for("update");
 }

@@ -12,6 +12,7 @@ import {
   Bell,
   Boxes,
   Cable,
+  ChartColumn,
   ChartNoAxesCombined,
   ChevronLeft,
 } from "lucide-react";
@@ -28,8 +29,12 @@ const ProjectNotifications = lazy(() =>
 const ProjectOverview = lazy(() =>
   import("./monitor-overview").then((m) => ({ default: m.ProjectOverview })),
 );
+const ProjectStats = lazy(() =>
+  import("./project-stats").then((m) => ({ default: m.ProjectStats })),
+);
 const views = [
   { path: "overview", label: "Overview", icon: ChartNoAxesCombined },
+  { path: "stats", label: "Stats", icon: ChartColumn },
   { path: "sources", label: "Sources", icon: Cable },
   { path: "notifications", label: "Notifications", icon: Bell },
 ];
@@ -88,6 +93,10 @@ export function ProjectPage() {
           <Route
             path="overview"
             element={<ProjectOverview key={id} project={project} data={data} />}
+          />
+          <Route
+            path="stats"
+            element={<ProjectStats key={id} project={project} data={data} />}
           />
           <Route
             path="sources"

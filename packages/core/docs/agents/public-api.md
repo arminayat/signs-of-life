@@ -6,6 +6,7 @@ This is an internal source-level API, not a published SDK. Import the defining f
 
 - model.ts exports every domain type/port listed in 02 plus AppError/assert.
 - store.ts exports Project, Connection, Source, Destination, Delivery, Job, Metric, Challenge, Snapshot, ProjectOverview, MonitorStore.
+- app-store.ts exports the App Store breakdown types (AppStoreSales, AppStoreSubscriptions, AppStoreDay, AppStoreStats, AppStoreListing), emptySales/emptySubscriptions, addCount/round, `summarizeAppStore(dates, rows)` (range totals, per-day series with null for missing reports, newest subscription snapshot) and `datesBetween(from, to)`.
 - time.ts exports localDay(now, timezone), calendarRange(now, timezone, days), validateCalendarRange(range, now, timezone, maxDays=365), dailyReady(now, timezone, time), reportingDates(now, days=7), validTimezone(value), shortAccount(id).
   For a caller in packages/backend/src, an existing import pattern is:
 

@@ -9,6 +9,7 @@ import type {
   SourceKind,
 } from "./model";
 import type { MonitoringStore } from "./monitor-store";
+import type { AppStoreDay, AppSubscriptionReport } from "./app-store";
 export type Project = {
   id: string;
   workspaceId: string;
@@ -206,21 +207,37 @@ export interface MonitorStore extends MonitoringStore {
     cursor: Cursor,
     job: Job,
   ): Promise<void>;
+  /** Stores one vendor date for every source of the connection, with each app's sales breakdown. */
   saveReport(
     connection: Connection,
     date: string,
     metrics: DownloadMetric[] | null,
     job: Job,
   ): Promise<void>;
-  /** Dates from `dates` that still lack this source's metric and a recorded unavailable report. */
+  /** Stores each source's share of one vendor date's subscription reports; null is a no-op. */
+  saveSubscriptions(
+    connection: Connection,
+    date: string,
+    subscriptions: AppSubscriptionReport[] | null,
+    job: Job,
+  ): Promise<void>;
+  /** Dates from `dates` whose App Store reports this source has not fetched yet. */
   appleHistoryDates(source: Source, dates: string[]): Promise<string[]>;
-  /** Stores one historical date for this source only; null records the report as unavailable. */
+  /** Stores one historical date for this source only; null records a report as unavailable. */
   saveAppleHistory(
     source: Source,
     date: string,
     metrics: DownloadMetric[] | null,
+    subscriptions: AppSubscriptionReport[] | null,
     job: Job,
   ): Promise<void>;
+  /** Stored App Store breakdowns for one source between two reporting dates (inclusive). */
+  appStoreDays(
+    workspaceId: string,
+    sourceId: string,
+    from: string,
+    to: string,
+  ): Promise<AppStoreDay[]>;
   reportDeliveryKeys(
     workspaceId: string,
     projectId: string,

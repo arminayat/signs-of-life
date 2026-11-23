@@ -6,6 +6,7 @@ import type { ApiServices } from "./services";
 import { AppError, assert } from "../../core/src/model";
 import { validTimezone, validateCalendarRange } from "../../core/src/time";
 import { integrationRoutes } from "./routes-integrations";
+import { appStoreRoutes } from "./routes-app-store";
 import { destinationRoutes } from "./routes-destinations";
 import { monitoringRoutes } from "./routes-monitoring";
 import { monitoringOAuth } from "./monitoring-access";
@@ -219,6 +220,7 @@ export function createApi(services: ApiServices) {
     return services.auth.logout(c.req.raw);
   });
   app.route("/api", integrationRoutes(services));
+  app.route("/api", appStoreRoutes(services));
   app.route("/api", monitoringRoutes(services));
   app.route("/api", destinationRoutes(services));
   app.notFound((c) => c.json({ error: "not_found" }, 404));

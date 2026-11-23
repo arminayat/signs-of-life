@@ -16,6 +16,7 @@ import {
 } from "./store-delivery";
 import { monitoringStore } from "./store-monitoring";
 import { overviewStore } from "./store-overview";
+import { appStoreStore } from "./store-app-store";
 export function postgresStore(db: Database): MonitorStore {
   return {
     ...jobStore(db),
@@ -23,6 +24,7 @@ export function postgresStore(db: Database): MonitorStore {
     ...sourceStore(db),
     ...overviewStore(db),
     ...collectionStore(db),
+    ...appStoreStore(db),
     async health() {
       try {
         const result = await db.execute(

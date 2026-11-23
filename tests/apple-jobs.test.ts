@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { fixture } from "./helpers";
 import * as t from "../packages/db/src/schema";
 import {
@@ -9,6 +9,10 @@ import {
 } from "../packages/backend/src/collectors";
 import { createApi } from "../packages/backend/src/api";
 import { reportingDates } from "../packages/core/src/time";
+import type {
+  AppStoreStats,
+  AppSubscriptionReport,
+} from "../packages/core/src/app-store";
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) await cleanup();
@@ -216,6 +220,177 @@ describe("Apple report lifecycle", () => {
     expect(deliveries.length).toBeGreaterThan(0);
     for (const delivery of deliveries)
       expect(delivery.notification.title).toContain("pending");
+  });
+  it("stores each app's sales and subscription breakdown and serves it on the Stats endpoint", async () => {
+    const f = await setup();
+    const dates = reportingDates(new Date());
+    const sales = {
+      downloads: 3,
+      redownloads: 1,
+      updates: 4,
+      purchases: 2,
+      renewals: 1,
+      refunds: 0,
+      proceeds: { EUR: 6.98 },
+      countries: { DE: 2, US: 1 },
+      devices: { iPhone: 3 },
+      versions: { "1.4.0": 4 },
+      products: { Monthly: { units: 2, proceeds: { EUR: 6.98 } } },
+    };
+    f.services.reports.report = vi.fn(async (_c: unknown, date: string) =>
+      date === dates[1]
+        ? null
+        : [
+            {
+              appId: "123",
+              title: "Product",
+              downloads: 3,
+              redownloads: 1,
+              sales,
+            },
+          ],
+    );
+    f.services.reports.subscriptions = vi.fn(
+      async (
+        _c: unknown,
+        date: string,
+      ): Promise<AppSubscriptionReport[] | null> =>
+        date === dates[0]
+          ? [
+              {
+                appId: "123",
+                subscriptions: {
+                  active: 5,
+                  offers: 1,
+                  trials: 2,
+                  billingRetry: 0,
+                  gracePeriod: 0,
+                  plans: { Monthly: 8 },
+                  events: { Renew: 1 },
+                },
+              },
+              {
+                appId: "999",
+                subscriptions: {
+                  active: 50,
+                  offers: 0,
+                  trials: 0,
+                  billingRetry: 0,
+                  gracePeriod: 0,
+                  plans: {},
+                  events: {},
+                },
+              },
+            ]
+          : null,
+    );
+    await collectApple(f.services, f.dailyJob, f.connection.id);
+    const rows = await f.db
+      .select()
+      .from(t.appStoreDays)
+      .where(eq(t.appStoreDays.sourceId, f.source.id));
+    // A pending Sales report and no subscription report store nothing yet.
+    expect(rows.map((row) => row.date).sort()).toEqual(
+      dates.filter((date) => date !== dates[1]).sort(),
+    );
+    const api = createApi(f.services);
+    const response = await api.request(
+      `/api/sources/${f.source.id}/app-store?from=${dates.at(-1)}&to=${dates[0]}`,
+    );
+    expect(response.status).toBe(200);
+    const stats = (await response.json()) as AppStoreStats;
+    expect(stats.reportDays).toBe(6);
+    expect(stats.totals).toMatchObject({
+      downloads: 18,
+      updates: 24,
+      purchases: 12,
+      proceeds: { EUR: 41.88 },
+    });
+    expect(stats.countries).toEqual({ DE: 12, US: 6 });
+    // Another app's subscriptions on the same vendor report stay out.
+    expect(stats.subscriptions).toMatchObject({ date: dates[0], active: 5 });
+    expect(stats.days.at(-1)).toMatchObject({ date: dates[0], active: 5 });
+    expect(stats.days.find((day) => day.date === dates[1])).toMatchObject({
+      downloads: null,
+    });
+    // A later report fills the pending date without erasing subscriptions.
+    f.services.reports.report = vi.fn(async () => [
+      { appId: "123", title: "Product", downloads: 1, redownloads: 0 },
+    ]);
+    f.services.reports.subscriptions = vi.fn(async () => null);
+    await collectApple(f.services, f.dailyJob, f.connection.id);
+    const [today] = await f.db
+      .select()
+      .from(t.appStoreDays)
+      .where(
+        and(
+          eq(t.appStoreDays.sourceId, f.source.id),
+          eq(t.appStoreDays.date, dates[0]),
+        ),
+      );
+    expect(today.sales).toMatchObject({ downloads: 1, countries: {} });
+    expect(today.subscriptions).toMatchObject({ active: 5 });
+    const listing = vi.fn(async () => ({
+      storeUrl: null,
+      versions: null,
+      reviews: null,
+      ratings: [],
+    }));
+    f.services.reports.listing = listing;
+    expect(
+      (
+        await api.request(
+          `/api/sources/${f.source.id}/app-store/listing?countries=DE,US,xx,DE`,
+        )
+      ).status,
+    ).toBe(200);
+    expect(listing).toHaveBeenCalledWith(expect.anything(), "123", [
+      "DE",
+      "US",
+    ]);
+    expect(
+      (
+        await api.request(
+          `/api/sources/${crypto.randomUUID()}/app-store?from=${dates[0]}&to=${dates[0]}`,
+        )
+      ).status,
+    ).toBe(404);
+  });
+  it("re-queues an imported source's history when breakdown dates are missing", async () => {
+    const f = await setup();
+    f.services.reports.report = vi.fn(async () => []);
+    let next = await collectAppleHistory(
+      f.services,
+      f.dailyJob,
+      f.source.id,
+      new Date(),
+      400,
+    );
+    expect(next).toBeUndefined();
+    const key = `apple-history:${f.source.id}`;
+    const [row] = await f.db.select().from(t.jobs).where(eq(t.jobs.key, key));
+    await f.store.finish((await f.store.claim(row.id))!);
+    const status = async () =>
+      (await f.db.select().from(t.jobs).where(eq(t.jobs.key, key)))[0].status;
+    await collectApple(f.services, f.dailyJob, f.connection.id);
+    expect(await status()).toBe("completed");
+    // An upgrade (or a gap) leaves a history date without a breakdown row.
+    const history = reportingDates(new Date(), 365).slice(7);
+    await f.db
+      .delete(t.appStoreDays)
+      .where(
+        and(
+          eq(t.appStoreDays.sourceId, f.source.id),
+          eq(t.appStoreDays.date, history[10]),
+        ),
+      );
+    await collectApple(f.services, f.dailyJob, f.connection.id);
+    expect(await status()).toBe("pending");
+    next = await collectAppleHistory(f.services, f.dailyJob, f.source.id);
+    expect(f.services.reports.report).toHaveBeenLastCalledWith(
+      expect.anything(),
+      history[10],
+    );
   });
   it("lists apps from every recent daily report and allows manual app IDs", async () => {
     const f = await setup();

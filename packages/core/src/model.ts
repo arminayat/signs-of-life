@@ -1,4 +1,9 @@
 import type { MonitorKind } from "./monitoring";
+import type {
+  AppStoreListing,
+  AppStoreSales,
+  AppSubscriptionReport,
+} from "./app-store";
 export type SourceKind = "supabase" | "apple" | MonitorKind;
 export type ChannelKind = "telegram" | "email" | "slack" | "discord";
 export type Notification = { title: string; text: string };
@@ -20,6 +25,8 @@ export type DownloadMetric = {
   title: string;
   downloads: number;
   redownloads: number;
+  /** Full sales breakdown; absent from older fixtures, which mean downloads only. */
+  sales?: AppStoreSales;
 };
 export type JobPayload =
   | { kind: "monitor.collect"; sourceId: string; historical: boolean }
@@ -73,6 +80,17 @@ export interface ReportSource {
     credentials: AppleCredentials,
     date: string,
   ): Promise<DownloadMetric[] | null>;
+  /** Subscription and subscription-event reports; null when Apple has neither. */
+  subscriptions(
+    credentials: AppleCredentials,
+    date: string,
+  ): Promise<AppSubscriptionReport[] | null>;
+  /** Live versions, reviews and storefront ratings for one app. */
+  listing(
+    credentials: AppleCredentials,
+    appId: string,
+    countries: string[],
+  ): Promise<AppStoreListing>;
 }
 export type AppleCredentials = {
   issuerId: string;
