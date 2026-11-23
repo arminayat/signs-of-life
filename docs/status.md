@@ -2,6 +2,21 @@
 
 This document distinguishes implemented behavior, automated verification and live acceptance. Update it before release.
 
+## App Store history and picker — 2026-11-23
+
+### Implemented and deployed
+
+- Release commit `18e41e1dddaf2c0f2f2355093853e9c961ddc49a`. New and reconnected App Store sources get an `apple.history` job that silently imports days 8–365 back for that source only. Apple 404 (no report) and 410 (beyond one year) are recorded as unavailable and not refetched. The catalog merges apps from all seven recent daily reports, and the source dialog always offers "Not listed? Enter an Apple app ID". No migration, environment variable or provider permission change.
+- [GitHub Actions 45234823622](https://github.com/arminayat/signs-of-life/actions/runs/45234823622) passed both jobs: 38 test files (316 tests), TypeScript, builds, all 8 CI browser tests, all four Worker dry runs and container checks. Locally, `pnpm check:isolated` passed the same 316 tests on a disposable PostgreSQL 18 cluster; Worker dry runs, `git diff --check` and a staged gitleaks scan passed. No local or production browser testing was performed.
+- Deployed jobs first (so no history job reached the old runner), then API, then dashboard: jobs `7547794d-a708-47dd-8263-3648dfb72728`, API `236cf4a2-a1c0-4f87-9e2b-d185acfc54bf`, dashboard `f3c99cf1-e21f-4146-890b-fe673c782137`. The landing Worker was unchanged. Minute Cron, queue producer/consumer and Hyperdrive bindings were preserved. Rollback targets are the 2026-10-23 versions listed below.
+- `/api/health`, `/api/ready` and `/api/config` return 200 with the release revision; unauthenticated project requests return 401. Hosted dashboard HTML and entry JS/CSS match the local build, and the live Sources chunk contains the new picker option.
+
+### Production data changes and observed import
+
+- At the operator's request: copied the Vinoh App Store Connect connection into Kapier (re-encrypted for the new connection id), added the Kapier app as a source, and queued the existing Vinoh source's history through `resumeConnection`. All of this used repository store code; there were no raw SQL writes.
+- Both history jobs completed in about 18 minutes (about 60 dates per run, with Apple responses taking about 2 s each). Both connections now have 227 available and 138 unavailable report dates, covering all 365. There were no failed jobs, source errors or connection errors, and no deliveries were created after deployment.
+- Remaining acceptance: the operator has not yet viewed the populated Overview, and the totals have not been compared with App Store Connect.
+
 ## Four additional integrations — 2026-10-17
 
 ### Implemented today — local source

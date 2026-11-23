@@ -76,7 +76,7 @@ git diff --check
 CLOUDFLARE_AUTH_USE_KEYRING=false pnpm exec wrangler deploy --profile signs-of-life-release --config apps/web/wrangler.landing.jsonc
 ```
 
-The named profile is the maintained installation's existing Wrangler authentication workaround; other installations should use their own authorized Cloudflare account and hostname. Deployment of this assets Worker does not deploy API/jobs/dashboard changes. Verify the public HTML, CSS, favicon and security headers after release; browser testing still requires task authorization. The supplied Docker application stack does not serve this separate landing build.
+The named profile is the maintained installation's earlier Wrangler authentication workaround. Its refresh token was rejected on 2026-11-23, and that release used `--profile default` instead (see the workspace known issues); other installations should use their own authorized Cloudflare account and hostname. Deployment of this assets Worker does not deploy API/jobs/dashboard changes. Verify the public HTML, CSS, favicon and security headers after release; browser testing still requires task authorization. The supplied Docker application stack does not serve this separate landing build.
 
 The 2026-10-23 landing release is live at `https://soll.arminayat.dev/`; HTTPS, exact asset bytes, security headers and links were checked over HTTP. See [status](status.md#public-landing-page--2026-10-23) for the evidence and unperformed browser gate. No API/jobs/dashboard deployment or database migration was part of that release.
 
