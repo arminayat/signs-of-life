@@ -27,6 +27,7 @@ export type JobPayload =
   | { kind: "monitor.webhook"; inboxId: string }
   | { kind: "supabase.collect"; sourceId: string }
   | { kind: "apple.collect"; connectionId: string }
+  | { kind: "apple.history"; sourceId: string }
   | { kind: "daily"; projectId: string }
   | { kind: "deliver"; deliveryId: string };
 export type DeliveryOutcome =

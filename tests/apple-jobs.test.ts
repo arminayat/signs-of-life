@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { fixture } from "./helpers";
 import * as t from "../packages/db/src/schema";
-import { collectApple, dailySummary } from "../packages/backend/src/collectors";
+import {
+  collectApple,
+  collectAppleHistory,
+  dailySummary,
+} from "../packages/backend/src/collectors";
+import { createApi } from "../packages/backend/src/api";
 import { reportingDates } from "../packages/core/src/time";
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -128,5 +133,124 @@ describe("Apple report lifecycle", () => {
     await collectApple(f.services, f.dailyJob, f.connection.id);
     expect(report).toHaveBeenCalledTimes(7);
     expect((await f.store.snapshot(f.workspaceId)).metrics).toHaveLength(14);
+  });
+  it("imports a year of history for the new source only, in silent batches", async () => {
+    const f = await setup();
+    const other = await f.store.createSource(
+      {
+        workspaceId: f.workspaceId,
+        projectId: f.project.id,
+        connectionId: f.connection.id,
+        kind: "apple",
+        name: "Another app",
+        externalId: "456",
+      },
+      10,
+    );
+    const [queued] = await f.db
+      .select()
+      .from(t.jobs)
+      .where(eq(t.jobs.key, `apple-history:${f.source.id}`));
+    expect(queued.payload).toEqual({
+      kind: "apple.history",
+      sourceId: f.source.id,
+    });
+    const live = reportingDates(f.now);
+    const history = reportingDates(f.now, 365).slice(live.length);
+    const unavailable = history[3];
+    // A date the live collector already stored keeps its totals and is not refetched.
+    await f.store.saveReport(f.connection, history[0], [
+      { appId: "123", title: "Product", downloads: 5, redownloads: 0 },
+    ]);
+    const report = vi.fn(async (_credentials: unknown, date: string) =>
+      date === unavailable
+        ? null
+        : [
+            { appId: "123", title: "Product", downloads: 2, redownloads: 1 },
+            {
+              appId: "456",
+              title: "Another app",
+              downloads: 9,
+              redownloads: 0,
+            },
+          ],
+    );
+    f.services.reports.report = report;
+    let next = await collectAppleHistory(
+      f.services,
+      f.dailyJob,
+      f.source.id,
+      f.now,
+      100,
+    );
+    expect(next).toBeInstanceOf(Date);
+    expect(report).toHaveBeenCalledTimes(100);
+    while (next)
+      next = await collectAppleHistory(
+        f.services,
+        f.dailyJob,
+        f.source.id,
+        f.now,
+        100,
+      );
+    const fetched = report.mock.calls.map(([, date]) => date);
+    expect(fetched).toHaveLength(history.length - 1);
+    expect(fetched).not.toContain(history[0]);
+    expect(fetched.some((date) => live.includes(date))).toBe(false);
+    const rows = await f.db.select().from(t.metrics);
+    const own = rows.filter((row) => row.sourceId === f.source.id);
+    expect(own).toHaveLength(history.length - 1);
+    expect(own.find((row) => row.date === unavailable)).toBeUndefined();
+    expect(own.find((row) => row.date === history[0])?.downloads).toBe(5);
+    expect(own.find((row) => row.date === history[1])?.downloads).toBe(2);
+    // Only the live save touched the other source; history is per source.
+    expect(rows.filter((row) => row.sourceId === other.id)).toHaveLength(1);
+    expect((await f.store.snapshot(f.workspaceId)).deliveries).toHaveLength(0);
+    // Finished imports, including unavailable dates, make no further calls.
+    await expect(
+      collectAppleHistory(f.services, f.dailyJob, f.source.id, f.now),
+    ).resolves.toBeUndefined();
+    expect(report).toHaveBeenCalledTimes(history.length - 1);
+    await dailySummary(f.services, f.dailyJob, f.project.id, f.now);
+    const deliveries = (await f.store.snapshot(f.workspaceId)).deliveries;
+    expect(deliveries.length).toBeGreaterThan(0);
+    for (const delivery of deliveries)
+      expect(delivery.notification.title).toContain("pending");
+  });
+  it("lists apps from every recent daily report and allows manual app IDs", async () => {
+    const f = await setup();
+    const dates = reportingDates(new Date());
+    f.services.reports.report = vi.fn(
+      async (_credentials: unknown, date: string) =>
+        date === dates[0]
+          ? [{ appId: "123", title: "Product", downloads: 1, redownloads: 0 }]
+          : date === dates[5]
+            ? [
+                {
+                  appId: "123",
+                  title: "Old name",
+                  downloads: 1,
+                  redownloads: 0,
+                },
+                {
+                  appId: "789",
+                  title: "Quiet app",
+                  downloads: 1,
+                  redownloads: 0,
+                },
+              ]
+            : null,
+    );
+    const response = await createApi(f.services).request(
+      `/api/connections/${f.connection.id}/catalog`,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      items: [
+        { id: "123", name: "Product" },
+        { id: "789", name: "Quiet app" },
+      ],
+      manualAppId: true,
+    });
   });
 });

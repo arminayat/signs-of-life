@@ -48,7 +48,7 @@ Customers create a team App Store Connect API key with access to Sales and Trend
 - `.p8` private key
 - Vendor number from Payments and Financial Reports
 
-The server signs short-lived JWTs and reads daily summary Sales reports. No App Analytics report-request creation or app instrumentation is used. App selection uses recent report rows, with a numeric Apple app ID fallback when the app is absent. A complete report without rows for the selected app is zero; an unavailable report is pending.
+The server signs short-lived JWTs and reads daily summary Sales reports. No App Analytics report-request creation or app instrumentation is used. App selection lists apps from the last seven daily reports. A daily report includes only apps with activity that day, so an app ID can always be entered directly ("Not listed? Enter an Apple app ID"). A complete report without rows for the selected app is zero. A recent unavailable report is pending. A new source silently imports up to a year of daily history in the background; Apple keeps daily reports for one year and returns 410 for older dates.
 
 Do not reuse private keys from unrelated installations. Raw gzip/TSV reports are discarded after bounded parsing.
 

@@ -187,17 +187,20 @@ export function integrationRoutes(services: Services) {
       connection.secret,
       connection.id,
     );
-    for (const date of reportingDates(new Date(), 7)) {
-      const report = await services.reports.report(credentials, date);
-      if (report?.length)
-        return c.json({
-          items: report.map((metric) => ({
-            id: metric.appId,
-            name: metric.title,
-          })),
-        });
-    }
-    return c.json({ items: [], manualAppId: true });
+    // Daily reports list only apps with activity that day, so merge the week
+    // (newest title wins) and always allow entering an app ID directly.
+    const reports = await Promise.all(
+      reportingDates(new Date(), 7).map((date) =>
+        services.reports.report(credentials, date),
+      ),
+    );
+    const apps = new Map<string, string>();
+    for (const metric of reports.flatMap((report) => report ?? []))
+      if (!apps.has(metric.appId)) apps.set(metric.appId, metric.title);
+    return c.json({
+      items: [...apps].map(([id, name]) => ({ id, name })),
+      manualAppId: true,
+    });
   });
   app.delete("/connections/:id", async (c) => {
     await store.disconnect(

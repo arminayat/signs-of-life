@@ -9,6 +9,8 @@ import { Button } from "@heroui/react";
 import { useAction, type Dashboard } from "./data";
 import { Dialog, ErrorNotice, Field, Notice, SelectField } from "./ui";
 import { catalogQuery } from "./catalog";
+// Daily Apple reports list only apps with recent activity, so any app can be entered by ID.
+const enterAppleId = "manual";
 export function SourceDialog({
   projectId,
   initialConnectionId = "",
@@ -40,10 +42,15 @@ export function SourceDialog({
     ...catalogQuery(connectionId),
     enabled: open && !!connectionId,
   });
+  const apple =
+    connection?.kind === "apple" && !catalog.isFetching && !catalog.error;
+  const manualApple =
+    apple && (!catalog.data?.items.length || externalId === enterAppleId);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
-    const id = String(fields.get("externalId"));
+    const appId = fields.get("appId");
+    const id = String(appId ?? fields.get("externalId")).trim();
     const selected = catalog.data?.items.find((item) => item.id === id);
     action.mutate(
       {
@@ -139,28 +146,39 @@ export function SourceDialog({
                   {item.environment ? ` · ${item.environment}` : ""}
                 </option>
               ))}
+              {connection?.kind === "apple" && (
+                <option value={enterAppleId}>
+                  Not listed? Enter an Apple app ID
+                </option>
+              )}
             </SelectField>
-          ) : connection?.kind === "apple" &&
-            !catalog.isFetching &&
-            !catalog.error ? (
+          ) : null}
+          {manualApple ? (
             <>
               <Notice>
-                No apps appeared in recent reports. You can enter the numeric
-                Apple app ID instead.
+                {catalog.data?.items.length
+                  ? "Only apps with activity in Apple’s last seven daily reports are listed. Find the numeric app ID in App Store Connect → App Information."
+                  : "No apps appeared in Apple’s last seven daily reports. Enter the numeric app ID from App Store Connect → App Information."}
               </Notice>
               <Field
-                name="externalId"
+                name="appId"
                 label="Apple app ID"
                 required
                 placeholder="1234567890"
               />
               <Field name="name" label="App name" required />
             </>
-          ) : catalog.data ? (
+          ) : !catalog.data?.items.length && catalog.data && !apple ? (
             <Notice>
               No accessible resources were found for this connection.
             </Notice>
           ) : null}
+          {apple && (
+            <Notice>
+              Daily downloads from the past year are imported in the background,
+              without notifications. Days without an Apple report stay blank.
+            </Notice>
+          )}
           {connection?.kind === "supabase" && (
             <Notice>
               Monitoring starts now, with no historical alerts. Anonymous

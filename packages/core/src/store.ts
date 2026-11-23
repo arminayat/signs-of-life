@@ -212,6 +212,15 @@ export interface MonitorStore extends MonitoringStore {
     metrics: DownloadMetric[] | null,
     job: Job,
   ): Promise<void>;
+  /** Dates from `dates` that still lack this source's metric and a recorded unavailable report. */
+  appleHistoryDates(source: Source, dates: string[]): Promise<string[]>;
+  /** Stores one historical date for this source only; null records the report as unavailable. */
+  saveAppleHistory(
+    source: Source,
+    date: string,
+    metrics: DownloadMetric[] | null,
+    job: Job,
+  ): Promise<void>;
   reportDeliveryKeys(
     workspaceId: string,
     projectId: string,

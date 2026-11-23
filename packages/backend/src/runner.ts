@@ -8,7 +8,12 @@ import { AppError } from "../../core/src/model";
 import type { Job } from "../../core/src/store";
 import { hashToken } from "../../adapters/src/crypto";
 import type { Services } from "./services";
-import { collectAccounts, collectApple, dailySummary } from "./collectors";
+import {
+  collectAccounts,
+  collectApple,
+  collectAppleHistory,
+  dailySummary,
+} from "./collectors";
 async function deliver(
   services: Services,
   job: Job,
@@ -170,6 +175,9 @@ export async function runOne(
         break;
       case "apple.collect":
         next = await collectApple(services, job, payload.connectionId);
+        break;
+      case "apple.history":
+        next = await collectAppleHistory(services, job, payload.sourceId);
         break;
       case "daily":
         next = await dailySummary(services, job, payload.projectId);

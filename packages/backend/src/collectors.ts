@@ -106,6 +106,50 @@ export async function collectApple(
   );
   return new Date(Date.now() + 3600_000);
 }
+/**
+ * Imports one source's older daily reports (days 8–365; Apple keeps a year) in
+ * bounded batches. The daily summary only examines the last seven dates, so
+ * this history never sends notifications.
+ */
+export async function collectAppleHistory(
+  services: Services,
+  job: Job,
+  sourceId: string,
+  now = new Date(),
+  limit = 60,
+): Promise<Date | undefined> {
+  const source = await services.store.source(job.workspaceId, sourceId);
+  if (!source || source.kind !== "apple") return;
+  const connection = await connectionFor(
+    services,
+    job.workspaceId,
+    source.connectionId,
+    "apple",
+  );
+  const live = reportingDates(now).length;
+  const pending = await services.store.appleHistoryDates(
+    source,
+    reportingDates(now, 365).slice(live),
+  );
+  if (!pending.length) return;
+  const credentials = await services.secrets.open<AppleCredentials>(
+    connection.secret,
+    connection.id,
+  );
+  const deadline = Date.now() + 120_000;
+  for (const date of pending.slice(0, limit)) {
+    if (Date.now() > deadline) break;
+    await services.store.saveAppleHistory(
+      source,
+      date,
+      await services.reports.report(credentials, date),
+      job,
+    );
+  }
+  return pending.length > limit || Date.now() > deadline
+    ? new Date(Date.now() + 3000)
+    : undefined;
+}
 export async function dailySummary(
   services: Services,
   job: Job,

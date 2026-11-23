@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { parseSalesReport } from "../packages/adapters/src/apple-source";
+import {
+  appleSource,
+  parseSalesReport,
+} from "../packages/adapters/src/apple-source";
 import {
   listSupabaseCatalog,
   supabaseSource,
@@ -64,6 +67,36 @@ describe("source normalization", () => {
     expect(parseSalesReport(report)).toEqual([
       { appId: "1", title: "Example", downloads: 6, redownloads: 4 },
     ]);
+  });
+  it("treats missing and expired Apple reports as unavailable", async () => {
+    const pair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign", "verify"],
+    );
+    const pkcs8 = Buffer.from(
+      await crypto.subtle.exportKey("pkcs8", pair.privateKey),
+    ).toString("base64");
+    const credentials = {
+      issuerId: "11111111-1111-4111-8111-111111111111",
+      keyId: "ABCDEFGHIJ",
+      privateKey: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----`,
+      vendorNumber: "123456",
+    };
+    for (const status of [404, 410]) {
+      const http = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(null, { status }));
+      await expect(
+        appleSource(http).report(credentials, "2026-01-01"),
+      ).resolves.toBeNull();
+    }
+    const failing = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 500 }));
+    await expect(
+      appleSource(failing).report(credentials, "2026-01-01"),
+    ).rejects.toThrow("apple_http_500");
   });
   it("rejects malformed reports instead of reporting zero downloads", () => {
     expect(() => parseSalesReport("unknown\tformat")).toThrow();

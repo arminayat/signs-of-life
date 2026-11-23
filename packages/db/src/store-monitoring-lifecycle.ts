@@ -57,12 +57,17 @@ export function monitoringLifecycleStore(
           ),
         );
       for (const source of sources) {
-        if (source.kind === "apple")
+        if (source.kind === "apple") {
           await jobs.enqueue(workspaceId, `apple:${connectionId}`, {
             kind: "apple.collect",
             connectionId,
           });
-        else if (source.kind === "supabase")
+          // History resumes from stored data, so a finished import makes no calls.
+          await jobs.enqueue(workspaceId, `apple-history:${source.id}`, {
+            kind: "apple.history",
+            sourceId: source.id,
+          });
+        } else if (source.kind === "supabase")
           await jobs.enqueue(workspaceId, `supabase:${source.id}`, {
             kind: "supabase.collect",
             sourceId: source.id,

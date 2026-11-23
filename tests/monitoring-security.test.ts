@@ -284,6 +284,10 @@ it("Apple reconnect resumes the terminated job without resetting source history"
       lastError: "connection_not_found_or_disconnected",
     })
     .where(eq(t.jobs.key, `apple:${id}`));
+  await f.db
+    .update(t.jobs)
+    .set({ status: "completed" })
+    .where(eq(t.jobs.key, `apple-history:${source.id}`));
   const response = await createApi(f.services).request(
     "/api/connections/apple",
     {
@@ -308,6 +312,11 @@ it("Apple reconnect resumes the terminated job without resetting source history"
     .from(t.jobs)
     .where(eq(t.jobs.key, `apple:${id}`));
   expect(job.status).toBe("pending");
+  const [history] = await f.db
+    .select()
+    .from(t.jobs)
+    .where(eq(t.jobs.key, `apple-history:${source.id}`));
+  expect(history.status).toBe("pending");
   expect((await f.store.source(f.workspaceId, source.id))?.baseline).toEqual(
     source.baseline,
   );

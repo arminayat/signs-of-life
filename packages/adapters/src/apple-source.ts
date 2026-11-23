@@ -77,7 +77,9 @@ export function appleSource(http: Http = fetch): ReportSource {
         },
         signal: AbortSignal.timeout(30_000),
       });
-      if (response.status === 404) {
+      // 404: no report for that date (for example, no sales). 410: older than
+      // Apple's one-year retention. Both mean the report is unavailable.
+      if (response.status === 404 || response.status === 410) {
         await response.body?.cancel();
         return null;
       }

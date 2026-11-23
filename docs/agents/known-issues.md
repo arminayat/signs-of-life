@@ -15,6 +15,8 @@
 
 - **CI dependency-download delay:** GitHub runner package installation can remain in progress while the Ubuntu mirror downloads required Chromium system packages slowly. Inspect completed/cancelled job logs before treating the delay as an application failure; the workflow redirects the observed Azure mirror entry to Ubuntu's official HTTPS archive before installing dependencies, retaining all test gates. A fresh-runner retry alone did not remove the delay during the release. This is distinct from local or live browser acceptance.
 
+- **Resolved App Store picker gap (backend + web):** Symptom: an app on the same Apple vendor account was missing when adding an App Store source. Cause: the catalog used only the newest non-empty daily Sales report (daily reports list only apps active that day), and the dialog offered manual App ID entry only when the list was empty. Fix: the catalog merges all seven daily reports, and the dialog always offers "Not listed? Enter an Apple app ID". Coverage: an apple-jobs catalog test and the existing e2e manual-ID flow. Prevention: don't infer an app's absence from one daily report.
+
 ## Planned/aspirational — log maintenance
 
 Each new entry needs symptom → root cause → actual fix/workaround (or explicitly none) → prevention and status. Do not label an untested proposal resolved; prune obsolete entries.

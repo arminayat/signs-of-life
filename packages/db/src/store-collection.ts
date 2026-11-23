@@ -12,6 +12,8 @@ export function collectionStore(
   | "reportDeliveryKeys"
   | "recordAccounts"
   | "saveReport"
+  | "appleHistoryDates"
+  | "saveAppleHistory"
   | "projectMetrics"
   | "sourceError"
   | "updateConnectionHealth"
@@ -151,6 +153,62 @@ export function collectionStore(
             .set({ lastSuccessAt: new Date(), lastError: null })
             .where(eq(t.sources.id, source.id));
         }
+      });
+    },
+    async appleHistoryDates(source, dates) {
+      if (!dates.length) return [];
+      const [stored, unavailable] = await Promise.all([
+        db
+          .select({ date: t.metrics.date })
+          .from(t.metrics)
+          .where(
+            and(
+              eq(t.metrics.sourceId, source.id),
+              inArray(t.metrics.date, dates),
+            ),
+          ),
+        db
+          .select({ date: t.reports.date })
+          .from(t.reports)
+          .where(
+            and(
+              eq(t.reports.connectionId, source.connectionId),
+              eq(t.reports.status, "unavailable"),
+              inArray(t.reports.date, dates),
+            ),
+          ),
+      ]);
+      const done = new Set([...stored, ...unavailable].map((row) => row.date));
+      return dates.filter((date) => !done.has(date));
+    },
+    async saveAppleHistory(source, date, metrics, job) {
+      await db.transaction(async (tx) => {
+        await lockJob(tx, job, source.workspaceId);
+        // lockSource locks project and active connection before the source.
+        if (!(await lockSource(tx, source.id, source.workspaceId))) return;
+        await tx
+          .insert(t.reports)
+          .values({
+            connectionId: source.connectionId,
+            date,
+            status: metrics ? "available" : "unavailable",
+          })
+          .onConflictDoNothing();
+        if (!metrics) return;
+        const metric = metrics.find(
+          (metric) => metric.appId === source.externalId,
+        ) ?? { downloads: 0, redownloads: 0 };
+        // Live collection owns dates it already stored; history only fills gaps.
+        await tx
+          .insert(t.metrics)
+          .values({
+            workspaceId: source.workspaceId,
+            sourceId: source.id,
+            date,
+            downloads: metric.downloads,
+            redownloads: metric.redownloads,
+          })
+          .onConflictDoNothing();
       });
     },
     async reportDeliveryKeys(workspaceId, projectId, dates) {

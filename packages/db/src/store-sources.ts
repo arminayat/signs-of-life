@@ -53,7 +53,7 @@ export function sourceStore(
             key: `supabase:${source.id}`,
             payload: { kind: "supabase.collect", sourceId: source.id },
           });
-        if (source.kind === "apple")
+        if (source.kind === "apple") {
           await tx
             .insert(t.jobs)
             .values({
@@ -69,6 +69,12 @@ export function sourceStore(
               set: { dueAt: new Date(), status: "pending" },
               setWhere: sql`${t.jobs.status} != 'running'`,
             });
+          await tx.insert(t.jobs).values({
+            workspaceId: input.workspaceId,
+            key: `apple-history:${source.id}`,
+            payload: { kind: "apple.history", sourceId: source.id },
+          });
+        }
         return source;
       });
     },
