@@ -2,6 +2,23 @@
 
 This document distinguishes implemented behavior, automated verification and live acceptance. Update it before release.
 
+## App Store stats page — 2026-11-23
+
+### Implemented and deployed
+
+- Release commit `fed8acb8db0aa146b977cf9bf2d019eab7878ac6`. The Apple collector also reads the daily Subscription and Subscription Event reports. It stores each app's full Sales breakdown and subscription counts in `app_store_days` (migration 0014). Each project has a new Stats page with tiles, charts, breakdowns, and live versions, reviews and storefront ratings. Download totals and notifications are unchanged. History batches are now 40 dates, because each date makes three Apple requests.
+- Before release, the new parsers ran read-only over all 365 real daily reports for both apps. The yearly totals matched the earlier one-off aggregation exactly: Vinoh had 147 new downloads, 121 redownloads, 334 updates, 14 in-app units and €42.72 proceeds; Kapier had 13 new downloads.
+- [GitHub Actions 45271332543](https://github.com/arminayat/signs-of-life/actions/runs/45271332543) passed both jobs. Locally, `pnpm check` passed 324 tests in 39 files (on a disposable PostgreSQL 18 cluster), plus TypeScript and the builds. All four Worker dry runs, `git diff --check` and a staged gitleaks scan passed. No local or production browser testing was performed.
+- Backed up the three private schemas to the owner-only backups folder before applying **0014_app_store_days** with the repository migration runner. All 15 migration hashes match source. Project, source, connection, metric, report, event and job counts and the encrypted credential digest were unchanged. The runtime role `signs_of_life_app` received SELECT/INSERT/UPDATE/DELETE on the new table through the schema's existing default privileges.
+- Deployed jobs, then API, then dashboard: jobs `962c41be-aaf5-42dd-8335-d8d6d1e48c1a`, API `b1b168dc-14b0-4998-814d-a9c6c7b884a7`, dashboard `351abd3b-1654-45d0-844e-a26b129a937e`. Health, readiness and config return 200 with the release revision. The unauthenticated Stats endpoint returns 401. The hosted index and Stats chunk match the local build. Rollback targets are the versions in the section below; the new table can stay in place under older code.
+
+### Production data changes and observed import
+
+- Queued both App Store sources' history imports at once with `resumeConnection` (jobs only), instead of waiting up to an hour for the hourly collector to re-queue them.
+- Both imports completed in about 20 minutes (22:40–23:01 local). Each stored 358 dates, 2025-11-23 to 2026-11-15, with 220 dates having a Sales report. Vinoh's stored breakdowns total 145 new downloads, 119 redownloads, 327 updates, 14 in-app units and €42.72. Those downloads equal its stored download totals for the same dates, and it has subscription data for all 358 dates. Kapier has 13 new downloads and no subscription data. There were no failed jobs, source or connection errors, or new deliveries.
+- The last seven dates fill in on each connection's next hourly collection.
+- Remaining acceptance: the operator has not viewed the Stats page, and no browser test was run. Versions, reviews and ratings are read live and were checked only with the read-only access probe (versions and reviews readable with this key).
+
 ## App Store history and picker — 2026-11-23
 
 ### Implemented and deployed
